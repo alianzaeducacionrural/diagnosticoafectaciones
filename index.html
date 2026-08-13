@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Encuesta de Daños por Sismo — Instituciones Educativas de Caldas</title>
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="header-eyebrow">La Universidad en el Campo · Comité de Cafeteros de Caldas</div>
+    <h1 class="header-titulo">Daños por sismo en instituciones educativas</h1>
+    <p class="header-sub">Reporta el estado de cada sede afectada, con evidencia fotográfica o de video. Puedes guardar y enviar aunque te falte información, y completarla después desde "Tus reportes guardados".</p>
+  </div>
+</header>
+
+<main class="contenedor">
+
+  <!-- Estado: cargando catálogos -->
+  <div id="cargandoCatalogos" class="cargando-catalogos">
+    <div class="spinner"></div>
+    <p>Cargando municipios, instituciones y sedes…</p>
+  </div>
+
+  <!-- Estado: error al cargar catálogos -->
+  <div id="errorCatalogos" class="error-catalogos oculto">
+    <p style="color:#dc2626; font-weight:600; margin-bottom:10px;">No se pudo cargar el formulario.</p>
+    <p style="margin-bottom:16px;">Verifica tu conexión a internet e intenta de nuevo.</p>
+    <button type="button" class="btn btn-primario" onclick="location.reload()">Reintentar</button>
+  </div>
+
+  <!-- Formulario principal -->
+  <form id="formulario" class="oculto" onsubmit="return false;">
+
+    <div id="mensajeError" class="alerta alerta-error oculto"></div>
+    <div id="avisoBorrador" class="alerta alerta-aviso oculto">
+      Se recuperó un borrador guardado en este navegador. Las fotos y videos <strong>no</strong> se guardan en el borrador — vuelve a adjuntarlos antes de enviar.
+    </div>
+
+    <!-- Padrino -->
+    <section class="card">
+      <div class="card-head">
+        <span class="icono">👤</span>
+        <h2>Tus datos</h2>
+      </div>
+      <div class="card-body">
+        <div class="campo">
+          <label for="padrino">Padrino / madrina<span class="req">*</span></label>
+          <select id="padrino" class="control" required>
+            <option value="">— Selecciona tu nombre —</option>
+          </select>
+        </div>
+        <div class="padrino-datos">
+          <div class="campo" style="margin-bottom:0;">
+            <label for="padrinoCorreo">Correo electrónico<span class="req">*</span></label>
+            <input type="email" id="padrinoCorreo" class="control" placeholder="tu@correo.com" required />
+          </div>
+          <div class="campo" style="margin-bottom:0;">
+            <label for="padrinoTelefono">Teléfono de contacto<span class="req">*</span></label>
+            <input type="tel" id="padrinoTelefono" class="control" placeholder="300 000 0000" required />
+          </div>
+        </div>
+        <p class="campo ayuda" style="margin-top:10px; margin-bottom:0;">Se autocompletan al elegir tu nombre — puedes corregirlos si están desactualizados.</p>
+      </div>
+    </section>
+
+    <!-- Reportes ya guardados por este padrino (borrador o completo) -->
+    <section id="misReportes" class="card oculto">
+      <div class="card-head">
+        <span class="icono">📋</span>
+        <h2>Tus reportes guardados</h2>
+      </div>
+      <div class="card-body">
+        <p class="campo ayuda" style="margin-top:0;">Toca "Continuar / editar" para completar la descripción, el nivel o subir la evidencia que te faltó.</p>
+        <div id="misReportesLista"></div>
+      </div>
+    </section>
+
+    <!-- Instituciones (repetible) -->
+    <div id="listaInstituciones"></div>
+
+    <button type="button" id="btnAgregarInstitucion" class="btn btn-agregar btn-block">＋ Agregar institución</button>
+
+    <!-- Envío -->
+    <div class="acciones-envio">
+      <button type="button" id="btnEnviar" class="btn btn-primario btn-block" disabled>
+        Guardar y enviar
+      </button>
+      <p class="campo ayuda" style="margin-top:8px; margin-bottom:0; text-align:center;">
+        Puedes enviar aunque falte el nivel, la descripción o la evidencia — quedará como "Borrador" y podrás completarla luego en "Tus reportes guardados".
+      </p>
+    </div>
+  </form>
+
+  <!-- Pantalla de envío en curso -->
+  <section id="pantallaEnvio" class="pantalla-envio oculto">
+    <div class="spinner"></div>
+    <p class="titulo">Enviando reporte…</p>
+    <p class="detalle" id="detalleEnvio">Preparando envío</p>
+    <div class="barra-global"><div class="relleno" id="barraGlobalRelleno"></div></div>
+    <div id="listaProgresoSedes" class="lista-progreso-sedes"></div>
+  </section>
+
+  <!-- Pantalla de resultado -->
+  <section id="pantallaResultado" class="pantalla-envio pantalla-exito oculto">
+    <div id="resultadoIcono" class="icono-grande">✅</div>
+    <p class="titulo" id="resultadoTitulo">Reporte enviado</p>
+    <p class="detalle" id="resultadoDetalle"></p>
+    <div id="listaResultadoSedes" class="lista-progreso-sedes"></div>
+    <div style="display:flex; gap:10px; margin-top:18px; justify-content:center; flex-wrap:wrap;">
+      <button type="button" id="btnReintentarFallidas" class="btn btn-primario oculto">Reintentar las que fallaron</button>
+      <button type="button" id="btnNuevoReporte" class="btn btn-secundario">Registrar otra institución</button>
+    </div>
+  </section>
+
+</main>
+
+<!-- ─── Plantillas (clonadas por JS) ─────────────────────── -->
+
+<template id="plantillaInstitucion">
+  <section class="institucion-bloque" data-institucion-bloque>
+    <div class="institucion-head">
+      <span class="titulo">Institución educativa</span>
+      <button type="button" class="btn-peligro" data-role="quitar-institucion">🗑 Quitar</button>
+    </div>
+    <div class="institucion-body">
+      <div class="campo-fila">
+        <div class="campo">
+          <label>Municipio<span class="req">*</span></label>
+          <select class="control" data-role="municipio" required>
+            <option value="">— Selecciona un municipio —</option>
+          </select>
+        </div>
+        <div class="campo">
+          <label>Institución educativa<span class="req">*</span></label>
+          <select class="control" data-role="institucion" disabled required>
+            <option value="">— Primero elige el municipio —</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Nombre completo del rector<span class="req">*</span></label>
+        <input type="text" class="control" data-role="rector-nombre" placeholder="Nombre y apellidos" required />
+      </div>
+      <div class="campo-fila">
+        <div class="campo">
+          <label>Correo del rector<span class="req">*</span></label>
+          <input type="email" class="control" data-role="rector-correo" placeholder="correo@ejemplo.com" required />
+        </div>
+        <div class="campo">
+          <label>Teléfono del rector<span class="req">*</span></label>
+          <input type="tel" class="control" data-role="rector-telefono" placeholder="300 000 0000" required />
+        </div>
+      </div>
+
+      <div class="sedes-lista" data-role="sedes-lista"></div>
+
+      <button type="button" class="btn btn-agregar btn-block" data-role="agregar-sede" disabled>＋ Agregar sede</button>
+    </div>
+  </section>
+</template>
+
+<template id="plantillaSede">
+  <div class="sede-bloque" data-sede-bloque>
+    <div class="sede-head">
+      <span class="titulo">Sede</span>
+      <button type="button" class="btn-peligro" data-role="quitar-sede">🗑 Quitar</button>
+    </div>
+    <div class="sede-body">
+      <div class="campo">
+        <label>Sede<span class="req">*</span></label>
+        <select class="control" data-role="sede" required>
+          <option value="">— Selecciona la sede —</option>
+        </select>
+      </div>
+
+      <div class="campo">
+        <label>Nivel de afectación</label>
+        <div class="chips" data-role="nivel-chips" data-valor="">
+          <button type="button" class="chip" data-nivel="Sin daños">Sin daños</button>
+          <button type="button" class="chip" data-nivel="Leve">Leve</button>
+          <button type="button" class="chip" data-nivel="Moderado">Moderado</button>
+          <button type="button" class="chip" data-nivel="Grave">Grave</button>
+          <button type="button" class="chip" data-nivel="Inhabilitada">Inhabilitada</button>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label>Descripción del daño</label>
+        <textarea class="control" data-role="descripcion" placeholder="Describe cómo quedó la sede: estructura, techos, muros, aulas, baterías sanitarias, etc. Puedes dejarlo para después."></textarea>
+      </div>
+
+      <div class="campo">
+        <label>Fotos</label>
+        <div class="adjuntos">
+          <label class="adjuntos-btn">
+            📷 Adjuntar fotos
+            <input type="file" accept="image/*" multiple data-role="fotos-input" style="display:none;" />
+          </label>
+          <div data-role="fotos-lista"></div>
+        </div>
+      </div>
+
+      <div class="campo" style="margin-bottom:0;">
+        <label>Videos</label>
+        <div class="adjuntos">
+          <label class="adjuntos-btn">
+            🎥 Adjuntar videos
+            <input type="file" accept="video/*" multiple data-role="videos-input" style="display:none;" />
+          </label>
+          <div data-role="videos-lista"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<template id="plantillaArchivo">
+  <div class="archivo-item" data-archivo-item>
+    <img class="miniatura oculto" data-role="miniatura" alt="" />
+    <div class="icono-video oculto" data-role="icono-video">🎥</div>
+    <div class="info">
+      <div class="nombre" data-role="nombre"></div>
+      <div class="peso" data-role="peso"></div>
+      <div class="progreso-archivo oculto" data-role="progreso-wrap">
+        <div class="relleno" data-role="progreso-relleno"></div>
+      </div>
+    </div>
+    <button type="button" class="quitar" data-role="quitar-archivo" title="Quitar">✕</button>
+  </div>
+</template>
+
+<template id="plantillaReporteGuardado">
+  <div class="progreso-sede-item" data-reporte-item style="align-items:center; justify-content:space-between; gap:10px;">
+    <span class="nombre" data-role="texto"></span>
+    <span class="badge-registrada" data-role="badge"></span>
+    <button type="button" class="btn-texto" data-role="editar">Continuar / editar</button>
+  </div>
+</template>
+
+<script src="js/config.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/form.js"></script>
+</body>
+</html>
