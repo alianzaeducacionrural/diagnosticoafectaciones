@@ -84,24 +84,28 @@ y agrega la fila con nombre/correo/teléfono; luego en la pestaña `asignacion` 
 "Jhonatan"/"Federico" por el nombre exacto que agregaste. No hace falta tocar el código ni
 volver a desplegar — el formulario lee estas pestañas en cada carga.
 
-## Publicar el frontend (GitHub Pages)
+## Frontend ya publicado (GitHub Pages)
 
-Este sitio es estático (sin build, sin `npm install`). Para publicarlo:
+- Repositorio: https://github.com/alianzaeducacionrural/diagnosticoafectaciones
+- Sitio: **https://alianzaeducacionrural.github.io/diagnosticoafectaciones/**
+- Pages activado sobre la rama `main`, carpeta raíz (`/`) — sin build, sin `npm install`.
+
+Para publicar cambios más adelante:
 
 ```bash
 cd "Encuesta Daños por sismo"
-git init
-git add index.html css js gas SETUP.md CLAUDE.md
-git commit -m "Formulario de daños por sismo"
-git remote add origin https://github.com/alianzaeducacionrural/<nombre-del-repo>.git
-git push -u origin main
+git add -A
+git commit -m "descripción del cambio"
+git push
 ```
 
-Luego, en GitHub → Settings → Pages → Source: rama `main`, carpeta `/ (root)`.
-
-Ojo con mayúsculas en las rutas (`css/`, `js/` en minúscula) — GitHub Pages es sensible a
+GitHub Pages reconstruye solo tras cada push (unos segundos a un par de minutos). Ojo con
+mayúsculas en las rutas (`css/`, `js/` en minúscula) — GitHub Pages es sensible a
 mayúsculas/minúsculas aunque Windows no lo sea; ya causó dos commits de arreglo en el proyecto
 `encuestaucampo`.
+
+`Asignación.xlsx` se dejó fuera del repositorio a propósito (era solo la fuente de datos para
+sembrar `Code.gs`; ya no lo usa el sistema en producción).
 
 ## Modificar el backend más adelante
 
