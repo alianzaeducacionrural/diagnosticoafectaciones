@@ -20,6 +20,9 @@
 // Carpeta "Encuesta de daños por sismo" en Drive — destino de todas las evidencias.
 var DRIVE_ROOT_ID = '1gnAgwNEG_8TB69Jf1BFMyD9O9LGCjzoN';
 
+// Origen del frontend publicado (GitHub Pages) — ver nota en sesionSubida_.
+var FRONTEND_ORIGIN = 'https://alianzaeducacionrural.github.io';
+
 var HEADERS_REGISTROS = [
   'Marca temporal', 'Padrino', 'Correo padrino', 'Teléfono padrino',
   'Municipio', 'Institución',
@@ -289,6 +292,14 @@ function normalizarClave_(s) {
 // ─── POST accion=sesionSubida ───────────────────────────────
 // Firma una sesión de subida reanudable de la Drive API v3 para que el
 // navegador suba el archivo DIRECTO a Google (el GAS nunca toca los bytes).
+//
+// La cabecera Origin es obligatoria aquí: Drive registra el origen permitido
+// para CORS en el momento en que se CREA la sesión. Sin ella (UrlFetchApp no
+// manda Origin por ser una llamada servidor-servidor), el preflight OPTIONS
+// que hace el navegador responde bien igual (es genérico), pero la respuesta
+// real de cada PUT de subida nunca trae Access-Control-Allow-Origin y el
+// navegador la bloquea — el envío falla con cualquier tipo de archivo. Ya
+// pasó en producción: ver commit de fix de subida de evidencias.
 
 function sesionSubida_(datos) {
   var carpetaId = String(datos.carpetaId || '').trim();
@@ -309,6 +320,7 @@ function sesionSubida_(datos) {
       headers: {
         Authorization: 'Bearer ' + token,
         'X-Upload-Content-Type': mimeType,
+        Origin: FRONTEND_ORIGIN,
       },
       payload: JSON.stringify(metadata),
       muteHttpExceptions: true,
