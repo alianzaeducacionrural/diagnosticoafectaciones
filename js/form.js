@@ -184,7 +184,7 @@ function agregarSede(institucionNodo, prellenado) {
   const tpl = document.getElementById('plantillaSede');
   const nodo = tpl.content.firstElementChild.cloneNode(true);
   institucionNodo.querySelector('[data-role="sedes-lista"]').appendChild(nodo);
-  nodo._archivos = { fotos: [], videos: [] };
+  nodo._archivos = { fotos: [], videos: [], documentos: [] };
   nodo._archivosExistentes = (prellenado && prellenado.evidencias) ? prellenado.evidencias.slice() : [];
   nodo._numeroFila = prellenado ? prellenado.numeroFila : null;
 
@@ -193,8 +193,10 @@ function agregarSede(institucionNodo, prellenado) {
   const descripcion = nodo.querySelector('[data-role="descripcion"]');
   const fotosInput = nodo.querySelector('[data-role="fotos-input"]');
   const videosInput = nodo.querySelector('[data-role="videos-input"]');
+  const documentosInput = nodo.querySelector('[data-role="documentos-input"]');
   const fotosLista = nodo.querySelector('[data-role="fotos-lista"]');
   const videosLista = nodo.querySelector('[data-role="videos-lista"]');
+  const documentosLista = nodo.querySelector('[data-role="documentos-lista"]');
   const btnQuitarSede = nodo.querySelector('[data-role="quitar-sede"]');
 
   if (prellenado) {
@@ -208,7 +210,7 @@ function agregarSede(institucionNodo, prellenado) {
       chipsWrap.dataset.valor = prellenado.nivel;
     }
     descripcion.value = prellenado.descripcion || '';
-    renderArchivosExistentes(nodo, fotosLista, videosLista);
+    renderArchivosExistentes(nodo, fotosLista, videosLista, documentosLista);
 
     const badge = document.createElement('span');
     badge.className = 'badge-registrada';
@@ -243,6 +245,12 @@ function agregarSede(institucionNodo, prellenado) {
   videosInput.addEventListener('change', () => {
     Array.from(videosInput.files).forEach((file) => agregarArchivo(nodo, 'video', file, videosLista));
     videosInput.value = '';
+    actualizarEstadoBotonEnviar();
+  });
+
+  documentosInput.addEventListener('change', () => {
+    Array.from(documentosInput.files).forEach((file) => agregarArchivo(nodo, 'documento', file, documentosLista));
+    documentosInput.value = '';
     actualizarEstadoBotonEnviar();
   });
 
@@ -293,8 +301,20 @@ function refrescarSedesDeInstitucion(institucionNodo) {
 
 // ─── Adjuntos ────────────────────────────────────────────────
 
+// tipo ('foto' | 'video' | 'documento') → clave del array en _archivos / ícono del sprite.
+function claveArchivos(tipo) {
+  if (tipo === 'foto') return 'fotos';
+  if (tipo === 'video') return 'videos';
+  return 'documentos';
+}
+function iconoParaTipo(tipo) {
+  if (tipo === 'foto') return '#icono-camara';
+  if (tipo === 'video') return '#icono-video';
+  return '#icono-documento';
+}
+
 function agregarArchivo(sedeNodo, tipo, file, contenedorLista) {
-  sedeNodo._archivos[tipo === 'foto' ? 'fotos' : 'videos'].push(file);
+  sedeNodo._archivos[claveArchivos(tipo)].push(file);
 
   const tpl = document.getElementById('plantillaArchivo');
   const item = tpl.content.firstElementChild.cloneNode(true);
@@ -307,12 +327,12 @@ function agregarArchivo(sedeNodo, tipo, file, contenedorLista) {
     img.classList.remove('oculto');
   } else {
     const icono = item.querySelector('[data-role="icono-video"]');
-    icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', '#icono-video');
+    icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', iconoParaTipo(tipo));
     icono.classList.remove('oculto');
   }
 
   item.querySelector('[data-role="quitar-archivo"]').addEventListener('click', () => {
-    const lista = sedeNodo._archivos[tipo === 'foto' ? 'fotos' : 'videos'];
+    const lista = sedeNodo._archivos[claveArchivos(tipo)];
     const idx = lista.indexOf(file);
     if (idx !== -1) lista.splice(idx, 1);
     item.remove();
@@ -324,12 +344,13 @@ function agregarArchivo(sedeNodo, tipo, file, contenedorLista) {
 
 // Muestra las evidencias que ya estaban subidas al servidor (modo edición):
 // enlace a Drive en vez de miniatura local, sin barra de progreso.
-function renderArchivosExistentes(sedeNodo, fotosLista, videosLista) {
+function renderArchivosExistentes(sedeNodo, fotosLista, videosLista, documentosLista) {
   fotosLista.innerHTML = '';
   videosLista.innerHTML = '';
+  documentosLista.innerHTML = '';
 
   sedeNodo._archivosExistentes.forEach((ev) => {
-    const contenedor = ev.tipo === 'foto' ? fotosLista : videosLista;
+    const contenedor = ev.tipo === 'foto' ? fotosLista : ev.tipo === 'video' ? videosLista : documentosLista;
     const tpl = document.getElementById('plantillaArchivo');
     const item = tpl.content.firstElementChild.cloneNode(true);
 
@@ -348,7 +369,7 @@ function renderArchivosExistentes(sedeNodo, fotosLista, videosLista) {
     item.querySelector('[data-role="peso"]').textContent = 'Ya subido';
 
     const icono = item.querySelector('[data-role="icono-video"]');
-    icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', ev.tipo === 'foto' ? '#icono-camara' : '#icono-video');
+    icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', iconoParaTipo(ev.tipo));
     icono.classList.remove('oculto');
 
     item.querySelector('[data-role="quitar-archivo"]').addEventListener('click', () => {
@@ -565,7 +586,7 @@ function validarFormulario() {
 }
 
 function sedeNodoArchivos(sedeEl) {
-  return sedeEl._archivos || { fotos: [], videos: [] };
+  return sedeEl._archivos || { fotos: [], videos: [], documentos: [] };
 }
 
 // ─── Recolección del payload ─────────────────────────────────
@@ -619,10 +640,11 @@ async function procesarSede(info, onProgreso) {
   });
 
   const evidencias = info.archivosExistentes.slice();
-  const totalArchivos = info.archivos.fotos.length + info.archivos.videos.length;
+  const totalArchivos = info.archivos.fotos.length + info.archivos.videos.length + info.archivos.documentos.length;
   let procesados = 0;
   let indiceFoto = 1;
   let indiceVideo = 1;
+  let indiceDocumento = 1;
 
   for (const file of info.archivos.fotos) {
     const nombreBase = construirNombreBase(info.municipio, info.institucion, info.sede, 'foto', indiceFoto++);
@@ -637,6 +659,16 @@ async function procesarSede(info, onProgreso) {
   for (const file of info.archivos.videos) {
     const nombreBase = construirNombreBase(info.municipio, info.institucion, info.sede, 'video', indiceVideo++);
     const resultado = await subirArchivo(file, ini.data.carpetaVideosId, 'video', nombreBase, (frac) => {
+      onProgreso(`Subiendo ${nombreBase}… ${Math.round(frac * 100)}%`);
+    });
+    procesados++;
+    evidencias.push(resultado);
+    onProgreso(`${procesados}/${totalArchivos} archivos nuevos subidos`);
+  }
+
+  for (const file of info.archivos.documentos) {
+    const nombreBase = construirNombreBase(info.municipio, info.institucion, info.sede, 'documento', indiceDocumento++);
+    const resultado = await subirArchivo(file, ini.data.carpetaDocumentosId, 'documento', nombreBase, (frac) => {
       onProgreso(`Subiendo ${nombreBase}… ${Math.round(frac * 100)}%`);
     });
     procesados++;

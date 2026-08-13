@@ -60,7 +60,7 @@ solo municipio, institución, sede y los datos de contacto. Al enviar, cada sede
 pestaña `registros` con una columna `Estado`:
 
 - **Borrador**: falta descripción o evidencia.
-- **Completo**: tiene descripción y al menos una foto o video.
+- **Completo**: tiene descripción y al menos una foto, video o documento.
 
 Cuando un padrino selecciona su nombre, el formulario carga automáticamente sus sedes ya
 guardadas (`GET ?accion=misRegistros&padrino=...`) en la sección "Tus reportes guardados", con

@@ -6,8 +6,8 @@ Guía para trabajar en este repositorio.
 
 Formulario público para que los padrinos del Comité de Cafeteros de Caldas reporten, sede por
 sede, los daños que dejó un sismo en las instituciones educativas rurales del departamento.
-Cada envío guarda una fila en Google Sheets y sube fotos o videos a una carpeta de Drive
-organizada `Municipio / Institución / Sede / {Fotos, Videos}`.
+Cada envío guarda una fila en Google Sheets y sube fotos, videos o documentos (PDF/Word/Excel)
+a una carpeta de Drive organizada `Municipio / Institución / Sede / {Fotos, Videos, Documentos}`.
 
 No hace falta completar todo de una vez: una sede se puede guardar solo con municipio,
 institución y sede (queda como "Borrador"), y el padrino la retoma después desde "Tus reportes

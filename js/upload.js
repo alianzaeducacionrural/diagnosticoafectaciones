@@ -1,10 +1,11 @@
 // ================================================
 // SUBIDA DE EVIDENCIAS
 // - Fotos: se comprimen en el navegador (canvas) antes de subir.
-// - Fotos y videos: se suben DIRECTO del navegador a Google Drive con una
-//   sesión de subida reanudable (el backend solo firma la sesión, nunca ve
-//   los bytes). Se transfieren en trozos de CONFIG.TAMANO_TROZO con
-//   reintento (hasta 3 veces, backoff 1s/2s/4s) si un trozo falla.
+// - Fotos, videos y documentos (PDF/Word/Excel) se suben DIRECTO del
+//   navegador a Google Drive con una sesión de subida reanudable (el backend
+//   solo firma la sesión, nunca ve los bytes). Se transfieren en trozos de
+//   CONFIG.TAMANO_TROZO con reintento (hasta 3 veces, backoff 1s/2s/4s) si un
+//   trozo falla.
 //
 // Límite de esta implementación: si el envío se corta y hay que reintentar
 // la sede completa, el archivo se sube de nuevo desde el trozo 1 (no hay
@@ -79,7 +80,7 @@ function fechaCorta_() {
 }
 
 function construirNombreBase(municipio, institucion, sede, tipo, indice) {
-  const tipoTag = tipo === 'foto' ? 'FOTO' : 'VIDEO';
+  const tipoTag = tipo === 'foto' ? 'FOTO' : tipo === 'video' ? 'VIDEO' : 'DOC';
   const idx = String(indice).padStart(2, '0');
   return [
     'SISMO',
@@ -103,6 +104,14 @@ function extensionPorMime_(mime) {
     'video/webm': 'webm',
     'video/3gpp': '3gp',
     'video/x-matroska': 'mkv',
+    'application/pdf': 'pdf',
+    'application/msword': 'doc',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+    'application/vnd.ms-excel': 'xls',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+    'application/vnd.ms-powerpoint': 'ppt',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+    'text/plain': 'txt',
   };
   if (mapa[mime]) return mapa[mime];
   if (mime && mime.indexOf('/') !== -1) return mime.split('/')[1];

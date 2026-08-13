@@ -25,11 +25,11 @@ var HEADERS_REGISTROS = [
   'Municipio', 'Institución',
   'Nombre rector', 'Correo rector', 'Teléfono rector',
   'Sede', 'Nivel de afectación', 'Descripción del daño',
-  '# Fotos', '# Videos', 'Carpeta de la sede', 'Evidencias (JSON)', 'Estado',
+  '# Fotos', '# Videos', '# Documentos', 'Carpeta de la sede', 'Evidencias (JSON)', 'Estado',
 ];
 
 // Índices 1-based de columnas.
-var COL = { PADRINO: 2, MUNICIPIO: 5, INSTITUCION: 6, SEDE: 10, EVIDENCIAS: 16, ESTADO: 17 };
+var COL = { PADRINO: 2, MUNICIPIO: 5, INSTITUCION: 6, SEDE: 10, EVIDENCIAS: 17, ESTADO: 18 };
 
 // Spreadsheet dedicado de resultados — ya creado a mano dentro de la carpeta
 // de evidencias en Drive (no lo crea el script, para no depender del permiso
@@ -198,7 +198,7 @@ function misRegistros_(nombrePadrino) {
       municipio: f[4], institucion: f[5],
       rectorNombre: f[6], rectorCorreo: f[7], rectorTelefono: f[8],
       sede: f[9], nivel: f[10], descripcion: f[11],
-      numFotos: f[12], numVideos: f[13], urlSede: f[14],
+      numFotos: f[12], numVideos: f[13], numDocumentos: f[14], urlSede: f[15],
       evidencias: evidencias,
       estado: f[COL.ESTADO - 1] || 'Borrador',
     });
@@ -240,12 +240,14 @@ function iniciarSede_(datos) {
     var carpetaSede = obtenerOCrearCarpeta_(carpetaIE, sede);
     var carpetaFotos = obtenerOCrearCarpeta_(carpetaSede, 'Fotos');
     var carpetaVideos = obtenerOCrearCarpeta_(carpetaSede, 'Videos');
+    var carpetaDocumentos = obtenerOCrearCarpeta_(carpetaSede, 'Documentos');
 
     return {
       carpetaSedeId: carpetaSede.getId(),
       urlSede: carpetaSede.getUrl(),
       carpetaFotosId: carpetaFotos.getId(),
       carpetaVideosId: carpetaVideos.getId(),
+      carpetaDocumentosId: carpetaDocumentos.getId(),
     };
   } finally {
     lock.releaseLock();
@@ -375,6 +377,7 @@ function guardarSede_(datos) {
 
     var fotos = evidencias.filter(function (ev) { return ev.tipo === 'foto'; });
     var videos = evidencias.filter(function (ev) { return ev.tipo === 'video'; });
+    var documentos = evidencias.filter(function (ev) { return ev.tipo === 'documento'; });
     var estado = (descripcion && evidencias.length > 0) ? 'Completo' : 'Borrador';
 
     var fila = [
@@ -383,7 +386,7 @@ function guardarSede_(datos) {
       municipio, institucion,
       rector.nombre || '', rector.correo || '', rector.telefono || '',
       sede, nivel, descripcion,
-      fotos.length, videos.length,
+      fotos.length, videos.length, documentos.length,
       urlSede, JSON.stringify(evidencias), estado,
     ];
 
@@ -415,7 +418,9 @@ function getSheet_(nombre) {
 // ─── POST accion=resembrarCatalogos ─────────────────────────
 // Reescribe por completo las pestañas "padrinos" y "asignacion" con lo que
 // haya en PADRINOS_SEED/ASIGNACION_SEED — útil cuando cambia la lista de
-// padrinos sin tener que abrir el editor de Apps Script. No toca "registros".
+// padrinos sin tener que abrir el editor de Apps Script. También corrige el
+// encabezado de "registros" si cambió (HEADERS_REGISTROS) y esa hoja todavía
+// no tiene filas reales — nunca toca filas con datos ya guardados.
 
 function resembrarCatalogos_(datos) {
   if (String((datos && datos.clave) || '') !== ADMIN_KEY) {
@@ -423,6 +428,12 @@ function resembrarCatalogos_(datos) {
   }
 
   var ss = getResultsSpreadsheet_();
+
+  var hReg = ss.getSheetByName('registros') || ss.insertSheet('registros');
+  if (hReg.getLastRow() <= 1) {
+    hReg.clear();
+    hReg.appendRow(HEADERS_REGISTROS);
+  }
 
   var hPad = ss.getSheetByName('padrinos') || ss.insertSheet('padrinos');
   hPad.clearContents();

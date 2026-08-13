@@ -59,6 +59,11 @@
   <symbol id="icono-circulo" viewBox="0 0 24 24">
     <circle cx="12" cy="12" r="8"/>
   </symbol>
+  <symbol id="icono-documento" viewBox="0 0 24 24">
+    <path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/>
+    <path d="M14 3v5h5"/>
+    <path d="M9 13h6M9 17h6"/>
+  </symbol>
 </svg>
 
 <header class="header">
@@ -68,7 +73,7 @@
       <span>Comité de Cafeteros de Caldas</span>
     </div>
     <h1 class="header-titulo">Daños por sismo en instituciones educativas</h1>
-    <p class="header-sub">Reporta el estado de cada sede afectada, con evidencia fotográfica o de video. Puedes guardar y enviar aunque te falte información, y completarla después desde "Tus reportes guardados".</p>
+    <p class="header-sub">Reporta el estado de cada sede afectada, con fotos, videos o documentos de evidencia. Puedes guardar y enviar aunque te falte información, y completarla después desde "Tus reportes guardados".</p>
   </div>
 </header>
 
@@ -285,7 +290,7 @@
         </div>
       </div>
 
-      <div class="campo" style="margin-bottom:0;">
+      <div class="campo">
         <label>Videos</label>
         <div class="adjuntos">
           <label class="adjuntos-btn">
@@ -294,6 +299,19 @@
             <input type="file" accept="video/*" multiple data-role="videos-input" style="display:none;" />
           </label>
           <div data-role="videos-lista"></div>
+        </div>
+      </div>
+
+      <div class="campo" style="margin-bottom:0;">
+        <label>Documentos</label>
+        <div class="adjuntos">
+          <label class="adjuntos-btn">
+            <svg class="icono-svg" aria-hidden="true"><use href="#icono-documento"/></svg>
+            Adjuntar documentos
+            <input type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" multiple data-role="documentos-input" style="display:none;" />
+          </label>
+          <p class="campo ayuda" style="margin-top:6px; margin-bottom:0;">Actas, informes de daños u otros PDF/Word/Excel.</p>
+          <div data-role="documentos-lista"></div>
         </div>
       </div>
     </div>
