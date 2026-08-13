@@ -193,11 +193,21 @@ async function subirArchivo(file, carpetaId, tipo, nombreBase, onProgress) {
   const mime = blob.type || file.type || 'application/octet-stream';
   const nombre = nombreBase + '.' + extensionPorMime_(mime);
 
-  const uploadUrl = await solicitarSesionSubida_(carpetaId, nombre, mime);
-  const resultado = await subirEnTrozos_(uploadUrl, blob, onProgress);
-
-  const id = resultado && resultado.id;
-  const url = id ? `https://drive.google.com/file/d/${id}/view` : '';
-
-  return { nombre, url, tipo };
+  // Si una sesión de subida se invalida a mitad de camino (p. ej. un corte
+  // de red), reintentar contra la misma URL nunca funciona — hay que pedir
+  // una sesión nueva. Se intenta con hasta 2 sesiones distintas.
+  let ultimoError;
+  for (let intentoSesion = 0; intentoSesion < 2; intentoSesion++) {
+    try {
+      const uploadUrl = await solicitarSesionSubida_(carpetaId, nombre, mime);
+      const resultado = await subirEnTrozos_(uploadUrl, blob, onProgress);
+      const id = resultado && resultado.id;
+      const url = id ? `https://drive.google.com/file/d/${id}/view` : '';
+      return { nombre, url, tipo };
+    } catch (err) {
+      ultimoError = err;
+      if (intentoSesion === 0) await esperar_(1500);
+    }
+  }
+  throw ultimoError;
 }
