@@ -458,7 +458,7 @@ select.control:disabled {
 .lista-progreso-sedes { text-align: left; max-width: 420px; margin: 0 auto; }
 
 .progreso-sede-item {
-  display: flex; align-items: center; gap: 10px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
   padding: 11px 14px; border-radius: var(--radio-sm); margin-bottom: 8px;
   background: var(--paper); font-size: 0.85rem;
   transition: background var(--t), color var(--t);
@@ -470,6 +470,9 @@ select.control:disabled {
 .progreso-sede-item.error    { background: var(--danger-bg); color: var(--danger-ink); }
 .progreso-sede-item.activo   { background: var(--info-bg); color: var(--info-ink); }
 .progreso-sede-item .nombre  { flex: 1; }
+.progreso-sede-item .detalle-error {
+  flex-basis: 100%; padding-left: 28px; font-size: 0.78rem; opacity: 0.9;
+}
 
 .barra-global {
   height: 7px; background: var(--ink-150); border-radius: var(--radio-pill);

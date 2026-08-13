@@ -733,7 +733,12 @@ async function enviarSedes(sedes) {
       fila.classList.remove('activo');
       fila.classList.add('error');
       fila.querySelector('.estado-icono').innerHTML = estadoIconoMarkup('error');
-      fila.title = err.message || 'Error desconocido';
+      const mensaje = err.message || 'Error desconocido';
+      info._errorMsg = mensaje;
+      const detalle = document.createElement('div');
+      detalle.className = 'detalle-error';
+      detalle.textContent = mensaje;
+      fila.appendChild(detalle);
       fallidas.push(info);
     }
 
@@ -764,6 +769,12 @@ function mostrarResultado(exitosas, fallidas) {
     const fila = document.createElement('div');
     fila.className = 'progreso-sede-item error';
     fila.innerHTML = `<span class="estado-icono">${estadoIconoMarkup('error')}</span><span class="nombre">${info.institucion} — ${info.sede}</span>`;
+    if (info._errorMsg) {
+      const detalle = document.createElement('div');
+      detalle.className = 'detalle-error';
+      detalle.textContent = info._errorMsg;
+      fila.appendChild(detalle);
+    }
     lista.appendChild(fila);
   });
 
