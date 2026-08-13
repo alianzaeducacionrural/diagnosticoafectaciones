@@ -32,6 +32,18 @@ function formatearPeso(bytes) {
   return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
+function iconoSvg(id) {
+  return `<svg class="icono-svg" aria-hidden="true"><use href="#${id}"></use></svg>`;
+}
+
+// Icono de estado para las filas de la lista de progreso de envío.
+function estadoIconoMarkup(estado) {
+  if (estado === 'ok') return iconoSvg('icono-check-circulo');
+  if (estado === 'error') return iconoSvg('icono-alerta');
+  if (estado === 'activo') return '<div class="spinner-sm"></div>';
+  return iconoSvg('icono-circulo'); // pendiente
+}
+
 async function postGAS(payload) {
   const res = await fetch(CONFIG.GAS_URL, {
     method: 'POST',
@@ -294,7 +306,9 @@ function agregarArchivo(sedeNodo, tipo, file, contenedorLista) {
     img.src = URL.createObjectURL(file);
     img.classList.remove('oculto');
   } else {
-    item.querySelector('[data-role="icono-video"]').classList.remove('oculto');
+    const icono = item.querySelector('[data-role="icono-video"]');
+    icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', '#icono-video');
+    icono.classList.remove('oculto');
   }
 
   item.querySelector('[data-role="quitar-archivo"]').addEventListener('click', () => {
@@ -334,7 +348,7 @@ function renderArchivosExistentes(sedeNodo, fotosLista, videosLista) {
     item.querySelector('[data-role="peso"]').textContent = 'Ya subido';
 
     const icono = item.querySelector('[data-role="icono-video"]');
-    icono.textContent = ev.tipo === 'foto' ? '📷' : '🎥';
+    icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', ev.tipo === 'foto' ? '#icono-camara' : '#icono-video');
     icono.classList.remove('oculto');
 
     item.querySelector('[data-role="quitar-archivo"]').addEventListener('click', () => {
@@ -379,7 +393,8 @@ async function cargarMisReportes() {
 
       const badge = item.querySelector('[data-role="badge"]');
       badge.textContent = r.estado || 'Borrador';
-      badge.style.background = r.estado === 'Completo' ? '#a7f3d0' : '#fde68a';
+      badge.style.background = r.estado === 'Completo' ? 'var(--safe-border)' : 'var(--caution-border)';
+      badge.style.color = r.estado === 'Completo' ? 'var(--safe-ink)' : 'var(--caution-ink)';
 
       item.querySelector('[data-role="editar"]').addEventListener('click', () => cargarRegistroParaEditar(r));
       lista.appendChild(item);
@@ -514,7 +529,12 @@ function restaurarBorrador() {
 
 function validarFormulario() {
   if (!elPadrino.value) return 'Selecciona tu nombre de padrino.';
-  if (!elPadrinoCorreo.value.trim()) return 'Falta tu correo electrónico.';
+
+  // El correo solo es obligatorio si el catálogo ya tenía uno para este
+  // padrino — algunos (por ahora) todavía no tienen correo registrado.
+  const registroPadrino = catalogos.padrinos.find((p) => p.nombre === elPadrino.value);
+  const correoEsperado = !registroPadrino || registroPadrino.correo;
+  if (correoEsperado && !elPadrinoCorreo.value.trim()) return 'Falta tu correo electrónico.';
   if (!elPadrinoTelefono.value.trim()) return 'Falta tu teléfono de contacto.';
 
   const bloquesInst = document.querySelectorAll('[data-institucion-bloque]');
@@ -653,7 +673,7 @@ async function enviarSedes(sedes) {
   const filas = sedes.map((info) => {
     const fila = document.createElement('div');
     fila.className = 'progreso-sede-item';
-    fila.innerHTML = `<span class="estado-icono">⏳</span><span class="nombre">${info.institucion} — ${info.sede}</span>`;
+    fila.innerHTML = `<span class="estado-icono">${estadoIconoMarkup('pendiente')}</span><span class="nombre">${info.institucion} — ${info.sede}</span>`;
     listaProgreso.appendChild(fila);
     return fila;
   });
@@ -665,6 +685,7 @@ async function enviarSedes(sedes) {
     const info = sedes[i];
     const fila = filas[i];
     fila.classList.add('activo');
+    fila.querySelector('.estado-icono').innerHTML = estadoIconoMarkup('activo');
     detalle.textContent = `Sede ${i + 1} de ${sedes.length} · ${info.institucion} — ${info.sede}`;
 
     try {
@@ -673,18 +694,18 @@ async function enviarSedes(sedes) {
       });
       fila.classList.remove('activo');
       fila.classList.add('ok');
-      fila.querySelector('.estado-icono').textContent = '✅';
+      fila.querySelector('.estado-icono').innerHTML = estadoIconoMarkup('ok');
       exitosas.push(info);
       registradasSet.add(claveSede(info.municipio, info.institucion, info.sede));
     } catch (err) {
       fila.classList.remove('activo');
       fila.classList.add('error');
-      fila.querySelector('.estado-icono').textContent = '⚠️';
+      fila.querySelector('.estado-icono').innerHTML = estadoIconoMarkup('error');
       fila.title = err.message || 'Error desconocido';
       fallidas.push(info);
     }
 
-    barraRelleno.style.width = Math.round(((i + 1) / sedes.length) * 100) + '%';
+    barraRelleno.style.transform = `scaleX(${(i + 1) / sedes.length})`;
   }
 
   mostrarResultado(exitosas, fallidas);
@@ -704,29 +725,32 @@ function mostrarResultado(exitosas, fallidas) {
   exitosas.forEach((info) => {
     const fila = document.createElement('div');
     fila.className = 'progreso-sede-item ok';
-    fila.innerHTML = `<span class="estado-icono">✅</span><span class="nombre">${info.institucion} — ${info.sede}</span>`;
+    fila.innerHTML = `<span class="estado-icono">${estadoIconoMarkup('ok')}</span><span class="nombre">${info.institucion} — ${info.sede}</span>`;
     lista.appendChild(fila);
   });
   fallidas.forEach((info) => {
     const fila = document.createElement('div');
     fila.className = 'progreso-sede-item error';
-    fila.innerHTML = `<span class="estado-icono">⚠️</span><span class="nombre">${info.institucion} — ${info.sede}</span>`;
+    fila.innerHTML = `<span class="estado-icono">${estadoIconoMarkup('error')}</span><span class="nombre">${info.institucion} — ${info.sede}</span>`;
     lista.appendChild(fila);
   });
 
+  const iconoExito = `<svg viewBox="0 0 40 40"><circle class="anillo-exito" cx="20" cy="20" r="17"/><path class="marca-exito" d="M13 20.5l4.8 4.8L27.5 14.5"/></svg>`;
+  const iconoAlerta = `<svg viewBox="0 0 40 40"><path class="anillo-alerta" d="M20 5 36 33H4Z" stroke-linejoin="round"/><path class="marca-alerta" d="M20 16v8"/><circle class="marca-alerta" cx="20" cy="27" r="1" fill="currentColor"/></svg>`;
+
   if (fallidas.length === 0) {
-    icono.textContent = '✅';
+    icono.innerHTML = iconoExito;
     titulo.textContent = '¡Reporte guardado!';
     detalle.textContent = `Se guardaron ${exitosas.length} sede(s). Las que quedaron incompletas puedes terminarlas después desde "Tus reportes guardados".`;
     btnReintentar.classList.add('oculto');
     try { localStorage.removeItem(CLAVE_BORRADOR); } catch (e) {}
   } else if (exitosas.length === 0) {
-    icono.textContent = '⚠️';
+    icono.innerHTML = iconoAlerta;
     titulo.textContent = 'No se pudo guardar el reporte';
     detalle.textContent = `Fallaron ${fallidas.length} sede(s). Revisa tu conexión e intenta de nuevo.`;
     btnReintentar.classList.remove('oculto');
   } else {
-    icono.textContent = '⚠️';
+    icono.innerHTML = iconoAlerta;
     titulo.textContent = 'Reporte guardado parcialmente';
     detalle.textContent = `${exitosas.length} sede(s) guardadas, ${fallidas.length} fallaron.`;
     btnReintentar.classList.remove('oculto');
@@ -766,7 +790,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const error = validarFormulario();
     const banner = document.getElementById('mensajeError');
     if (error) {
-      banner.textContent = error;
+      banner.querySelector('[data-role="texto"]').textContent = error;
       banner.classList.remove('oculto');
       banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;

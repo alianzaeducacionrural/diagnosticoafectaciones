@@ -36,13 +36,20 @@ var COL = { PADRINO: 2, MUNICIPIO: 5, INSTITUCION: 6, SEDE: 10, EVIDENCIAS: 16, 
 // de creación en el primer arranque).
 var RESULTS_SHEET_ID = '1u7P_zM9iZMSTxisU_Ng0FdyHWWnwpSrRjSYLvjP-bKI';
 
-// Semilla para poblar la pestaña "padrinos" la primera vez (inicializar()).
-// Tomado de la pestaña "Padrinos" del sheet maestro "Bases de datos Educación".
-var PADRINOS_SEED = [["Alejandro Osorio Loaiza","edurural.osorio.alejandro@gmail.com","3242117624"],["Alexander de Jesús Ossa Calvo","edurural.ossa.alex@gmail.com","3113098982"],["Anderson González Gutiérrez","edurural.gonzalez.anderson@gmail.com","3137859779"],["Carolina Londoño Gallego","edurural.gallego.caro@gmail.com","3023689214"],["Claudia Patricia Herrera Tellez","edurural.herrera.claudiap@gmail.com","3234229155"],["Cristian Hely Florez Rodríguez","edurural.florez.cristian@gmail.com","3113353986"],["David Steven Betancourth Gaitán","edurural.gaitan.david@gmail.com","3128540055"],["Jhon Jairo Franco Arenas","edurural.franco.jjairo@gmail.com","3104135372"],["Jorge Andrés Montoya Palacio","edurural.montoya.jandres@gmail.com","3112290059"],["Juan Gabriel Alzate Gallego","edurural.alzate.juang@gmail.com","3105454141"],["Juan Pablo Bedoya Cañon","edurural.bedoya.juan@gmail.com","3212306469"],["Libardo Andrés Acosta Hurtado","edurural.acosta.libardo@gmail.com","3146530530"],["Lucelly Giraldo Sierra","edurural.giraldo.lucelly@gmail.com","3117466108"],["Luis Gabriel Suárez Giraldo","edurural.suarez.lgabriel@gmail.com","3136617862"],["Santiago Ramírez García","edurural.ramirez.santiago@gmail.com","3112602704"],["Yeison Suárez Suárez","edurural.suarez.yeison@gmail.com","3148601125"],["Yohan Sebastián Molano Muñoz","edurural.molano.sebastian@gmail.com","3114791814"],["Duverney Castaño Aguirre","edurural.castano.duverney@gmail.com","3132873377"],["Julian Nieto Soto","edurural.nieto.julian@gmail.com","3146711874"],["Luz Piedad Llano García","edurural.llano.luzpiedad@gmail.com","3113699727"]];
+// Semilla para poblar la pestaña "padrinos" (inicializar() y resembrarCatalogos_()).
+// Lista oficial dada por el usuario el 2026-08-13. Federico y Jonathan aún no
+// tienen correo — el formulario no lo exige para ellos (ver validarFormulario
+// en js/form.js).
+var PADRINOS_SEED = [["Alejandro Osorio Loaiza","edurural.osorio.alejandro@gmail.com","3242117624"],["Alexander de Jesús Ossa Calvo","edurural.ossa.alex@gmail.com","3113098982"],["Anderson González Gutiérrez","edurural.gonzalez.anderson@gmail.com","3137859779"],["Claudia Patricia Herrera Tellez","edurural.herrera.claudiap@gmail.com","3234229155"],["Cristian Hely Florez Rodríguez","edurural.florez.cristian@gmail.com","3113353986"],["David Steven Betancourth Gaitán","edurural.gaitan.david@gmail.com","3128540055"],["Jhon Jairo Franco Arenas","edurural.franco.jjairo@gmail.com","3104135372"],["Juan Gabriel Alzate Gallego","edurural.alzate.juang@gmail.com","3105454141"],["Juan Pablo Bedoya Cañon","edurural.bedoya.juan@gmail.com","3212306469"],["Libardo Andrés Acosta Hurtado","edurural.acosta.libardo@gmail.com","3146530530"],["Lucelly Giraldo Sierra","edurural.giraldo.lucelly@gmail.com","3117466108"],["Luis Gabriel Suárez Giraldo","edurural.suarez.lgabriel@gmail.com","3136617862"],["Santiago Ramírez García","edurural.ramirez.santiago@gmail.com","3112602704"],["Yeison Suárez Suárez","edurural.suarez.yeison@gmail.com","3148601125"],["Yohan Sebastián Molano Muñoz","edurural.molano.sebastian@gmail.com","3114791814"],["Julian Nieto Soto","edurural.nieto.julian@gmail.com","3146711874"],["Federico Castillón Salazar","",""],["Jonathan Gerardo Orozco Herrera","",""]];
 
-// Semilla para poblar la pestaña "asignacion" la primera vez (inicializar()).
+// Semilla para poblar la pestaña "asignacion" (inicializar() y resembrarCatalogos_()).
 // Tomado de Asignación.xlsx. "Marulanda" aparece dos veces (dos padrinos) a propósito.
-var ASIGNACION_SEED = [["Aguadas","Julian Nieto Soto"],["Anserma","Juan Gabriel Alzate Gallego"],["Aranzazu","Lucelly Giraldo Sierra"],["Belalcázar","Jhonatan"],["Chinchiná","Jhon Jairo Franco Arenas"],["Filadelfia","Luis Gabriel Suárez Giraldo"],["La Dorada","Juan Pablo Bedoya Cañon"],["La Merced","Federico"],["Manzanares","Santiago Ramírez García"],["Marmato","Alexander de Jesús Ossa Calvo"],["Marquetalia","Santiago Ramírez García"],["Marulanda","Cristian Hely Florez Rodríguez"],["Marulanda","Julian Nieto Soto"],["Neira","Luis Gabriel Suárez Giraldo"],["Norcasia","Juan Pablo Bedoya Cañon"],["Pácora","Julian Nieto Soto"],["Palestina","Federico"],["Pensilvania","Cristian Hely Florez Rodríguez"],["Riosucio","Alejandro Osorio Loaiza"],["Risaralda","Libardo Andrés Acosta Hurtado"],["Salamina","Lucelly Giraldo Sierra"],["Samaná","Yohan Sebastián Molano Muñoz"],["San José","Juan Gabriel Alzate Gallego"],["Supía","Santiago Ramírez García"],["Victoria","Juan Pablo Bedoya Cañon"],["Villamaría","Jhonatan"],["Viterbo","Juan Gabriel Alzate Gallego"]];
+var ASIGNACION_SEED = [["Aguadas","Julian Nieto Soto"],["Anserma","Juan Gabriel Alzate Gallego"],["Aranzazu","Lucelly Giraldo Sierra"],["Belalcázar","Jonathan Gerardo Orozco Herrera"],["Chinchiná","Jhon Jairo Franco Arenas"],["Filadelfia","Luis Gabriel Suárez Giraldo"],["La Dorada","Juan Pablo Bedoya Cañon"],["La Merced","Federico Castillón Salazar"],["Manzanares","Santiago Ramírez García"],["Marmato","Alexander de Jesús Ossa Calvo"],["Marquetalia","Santiago Ramírez García"],["Marulanda","Cristian Hely Florez Rodríguez"],["Marulanda","Julian Nieto Soto"],["Neira","Luis Gabriel Suárez Giraldo"],["Norcasia","Juan Pablo Bedoya Cañon"],["Pácora","Julian Nieto Soto"],["Palestina","Federico Castillón Salazar"],["Pensilvania","Cristian Hely Florez Rodríguez"],["Riosucio","Alejandro Osorio Loaiza"],["Risaralda","Libardo Andrés Acosta Hurtado"],["Salamina","Lucelly Giraldo Sierra"],["Samaná","Yohan Sebastián Molano Muñoz"],["San José","Juan Gabriel Alzate Gallego"],["Supía","Santiago Ramírez García"],["Victoria","Juan Pablo Bedoya Cañon"],["Villamaría","Jonathan Gerardo Orozco Herrera"],["Viterbo","Juan Gabriel Alzate Gallego"]];
+
+// Clave simple para proteger el resembrado de catálogos — no es autenticación
+// real (el resto del backend tampoco la tiene), solo evita que alguien active
+// el endpoint por accidente o adivinando la URL.
+var ADMIN_KEY = 'sismo-caldas-2026';
 
 // Catálogo fijo Municipio/Institución/Sede — 26 municipios de Caldas, excluye
 // Manizales y La Pintada. Tomado de la pestaña "Mun/IE/Sedes" del sheet maestro
@@ -73,6 +80,8 @@ function doPost(e) {
         return jsonResponse(sesionSubida_(datos));
       case 'guardarSede':
         return jsonResponse(guardarSede_(datos));
+      case 'resembrarCatalogos':
+        return jsonResponse(resembrarCatalogos_(datos));
       default:
         return errorResponse('Acción no reconocida: ' + accion);
     }
@@ -401,6 +410,31 @@ function getSheet_(nombre) {
   var sheet = ss.getSheetByName(nombre);
   if (!sheet) sheet = ss.insertSheet(nombre);
   return sheet;
+}
+
+// ─── POST accion=resembrarCatalogos ─────────────────────────
+// Reescribe por completo las pestañas "padrinos" y "asignacion" con lo que
+// haya en PADRINOS_SEED/ASIGNACION_SEED — útil cuando cambia la lista de
+// padrinos sin tener que abrir el editor de Apps Script. No toca "registros".
+
+function resembrarCatalogos_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) {
+    throw new Error('Clave inválida.');
+  }
+
+  var ss = getResultsSpreadsheet_();
+
+  var hPad = ss.getSheetByName('padrinos') || ss.insertSheet('padrinos');
+  hPad.clearContents();
+  hPad.appendRow(['Nombre', 'Correo', 'Teléfono']);
+  hPad.getRange(2, 1, PADRINOS_SEED.length, 3).setValues(PADRINOS_SEED);
+
+  var hAsig = ss.getSheetByName('asignacion') || ss.insertSheet('asignacion');
+  hAsig.clearContents();
+  hAsig.appendRow(['Municipio', 'Padrino']);
+  hAsig.getRange(2, 1, ASIGNACION_SEED.length, 2).setValues(ASIGNACION_SEED);
+
+  return { padrinos: PADRINOS_SEED.length, asignacion: ASIGNACION_SEED.length };
 }
 
 // ─── Inicialización (ejecutar UNA vez a mano) ───────────────
