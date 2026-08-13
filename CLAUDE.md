@@ -4,10 +4,10 @@ Guía para trabajar en este repositorio.
 
 ## Qué es esto
 
-Formulario público para que los 20 padrinos de "La Universidad en el Campo" (Comité de
-Cafeteros de Caldas) reporten, sede por sede, los daños que dejó un sismo en las instituciones
-educativas rurales del departamento. Cada envío guarda una fila en Google Sheets y sube fotos
-o videos a una carpeta de Drive organizada `Municipio / Institución / Sede / {Fotos, Videos}`.
+Formulario público para que los padrinos del Comité de Cafeteros de Caldas reporten, sede por
+sede, los daños que dejó un sismo en las instituciones educativas rurales del departamento.
+Cada envío guarda una fila en Google Sheets y sube fotos o videos a una carpeta de Drive
+organizada `Municipio / Institución / Sede / {Fotos, Videos}`.
 
 No hace falta completar todo de una vez: una sede se puede guardar solo con municipio,
 institución y sede (queda como "Borrador"), y el padrino la retoma después desde "Tus reportes
