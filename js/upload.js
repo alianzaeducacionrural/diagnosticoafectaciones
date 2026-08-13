@@ -203,7 +203,7 @@ async function subirArchivo(file, carpetaId, tipo, nombreBase, onProgress) {
       const resultado = await subirEnTrozos_(uploadUrl, blob, onProgress);
       const id = resultado && resultado.id;
       const url = id ? `https://drive.google.com/file/d/${id}/view` : '';
-      return { nombre, url, tipo };
+      return { nombre, url, tipo, id: id || '' };
     } catch (err) {
       ultimoError = err;
       if (intentoSesion === 0) await esperar_(1500);

@@ -345,6 +345,23 @@
   </div>
 </template>
 
+<!-- Modal de previsualización de evidencias ya subidas -->
+<div id="modalPrevia" class="modal-previa oculto" data-role="modal-previa">
+  <div class="modal-previa-fondo" data-role="modal-cerrar"></div>
+  <div class="modal-previa-caja">
+    <div class="modal-previa-barra">
+      <span class="modal-previa-nombre" data-role="modal-nombre"></span>
+      <div class="modal-previa-acciones">
+        <a class="btn-texto" data-role="modal-abrir" href="#" target="_blank" rel="noopener">Abrir en Drive</a>
+        <button type="button" class="modal-previa-cerrar" data-role="modal-cerrar" title="Cerrar">
+          <svg class="icono-svg" aria-hidden="true"><use href="#icono-x"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="modal-previa-cuerpo" data-role="modal-cuerpo"></div>
+  </div>
+</div>
+
 <script src="js/config.js"></script>
 <script src="js/upload.js"></script>
 <script src="js/form.js"></script>

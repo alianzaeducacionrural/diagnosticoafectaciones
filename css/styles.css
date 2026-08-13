@@ -388,6 +388,7 @@ select.control:disabled {
 }
 
 .archivo-item {
+  position: relative;
   display: flex; align-items: center; gap: 11px;
   padding: 9px 10px; border: 1px solid var(--ink-300); border-radius: var(--radio-sm);
   margin-top: 8px; background: var(--surface);
@@ -418,6 +419,66 @@ select.control:disabled {
 }
 .archivo-item .quitar .icono-svg { width: 15px; height: 15px; }
 .archivo-item .quitar:hover { background: var(--danger-bg); color: var(--danger-ink); }
+
+.archivo-item.previsualizable { cursor: pointer; transition: border-color var(--t-fast), background var(--t-fast); }
+.archivo-item.previsualizable:hover { border-color: var(--clay-400); background: var(--clay-50); }
+
+.miniatura-play {
+  position: absolute; left: 10px; top: 9px; width: 42px; height: 42px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.28); color: #fff; pointer-events: none;
+}
+.miniatura-play .icono-svg { width: 16px; height: 16px; }
+
+/* ─── Modal de previsualización ─────────────────────────────── */
+
+.modal-previa {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-previa.oculto { display: none; }
+
+.modal-previa-fondo {
+  position: absolute; inset: 0; background: rgba(30, 20, 14, 0.72); backdrop-filter: blur(2px);
+}
+
+.modal-previa-caja {
+  position: relative; width: min(920px, 100%); height: min(85vh, 720px);
+  background: var(--paper); border-radius: var(--radio-md);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  display: flex; flex-direction: column; overflow: hidden;
+  animation: entrada-archivo 0.2s var(--ease-out);
+}
+
+.modal-previa-barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 12px 14px; border-bottom: 1px solid var(--ink-200); flex-shrink: 0;
+}
+.modal-previa-nombre { font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.modal-previa-acciones { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+
+.modal-previa-cerrar {
+  background: none; border: none; color: var(--ink-600);
+  padding: 7px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.modal-previa-cerrar .icono-svg { width: 17px; height: 17px; }
+.modal-previa-cerrar:hover { background: var(--danger-bg); color: var(--danger-ink); }
+
+.modal-previa-cuerpo { flex: 1; min-height: 0; background: var(--ink-100); }
+.modal-previa-cuerpo iframe,
+.modal-previa-cuerpo img,
+.modal-previa-cuerpo video {
+  width: 100%; height: 100%; border: none; object-fit: contain; display: block;
+  background: var(--ink-900, #1e140e);
+}
+
+@media (max-width: 640px) {
+  .modal-previa { padding: 0; }
+  .modal-previa-caja { width: 100%; height: 100%; border-radius: 0; }
+}
 
 .progreso-archivo {
   height: 4px; background: var(--ink-150); border-radius: var(--radio-pill);

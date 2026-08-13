@@ -85,6 +85,8 @@ function doPost(e) {
         return jsonResponse(guardarSede_(datos));
       case 'resembrarCatalogos':
         return jsonResponse(resembrarCatalogos_(datos));
+      case 'compartirEvidencias':
+        return jsonResponse(compartirEvidencias_(datos));
       default:
         return errorResponse('Acción no reconocida: ' + accion);
     }
@@ -412,6 +414,19 @@ function guardarSede_(datos) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ─── POST accion=compartirEvidencias (uso único) ────────────
+// Pone la carpeta raíz de evidencias en "Cualquiera con el enlace puede
+// ver". En Drive (no en Unidades compartidas) esto se hereda dinámicamente
+// a todo lo que haya dentro, ya subido o futuro — así los padrinos
+// (usuarios anónimos, sin sesión de Google) pueden ver sus fotos, videos y
+// documentos desde "Tus reportes guardados" sin pedir acceso.
+function compartirEvidencias_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var carpeta = DriveApp.getFolderById(DRIVE_ROOT_ID);
+  carpeta.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return { ok: true, carpeta: carpeta.getName() };
 }
 
 // ─── Funciones auxiliares para leer/escribir el spreadsheet ─

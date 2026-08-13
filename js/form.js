@@ -342,8 +342,17 @@ function agregarArchivo(sedeNodo, tipo, file, contenedorLista) {
   contenedorLista.appendChild(item);
 }
 
+// El backend guarda solo {nombre, url, tipo} en filas viejas — el id de
+// Drive se extrae de la URL si no vino ya como campo aparte.
+function idDriveDeEvidencia_(ev) {
+  if (ev.id) return ev.id;
+  const m = /\/d\/([^/]+)/.exec(ev.url || '');
+  return m ? m[1] : '';
+}
+
 // Muestra las evidencias que ya estaban subidas al servidor (modo edición):
-// enlace a Drive en vez de miniatura local, sin barra de progreso.
+// miniatura clicable (abre previsualización grande) en vez de solo un
+// enlace de texto, sin barra de progreso.
 function renderArchivosExistentes(sedeNodo, fotosLista, videosLista, documentosLista) {
   fotosLista.innerHTML = '';
   videosLista.innerHTML = '';
@@ -353,26 +362,34 @@ function renderArchivosExistentes(sedeNodo, fotosLista, videosLista, documentosL
     const contenedor = ev.tipo === 'foto' ? fotosLista : ev.tipo === 'video' ? videosLista : documentosLista;
     const tpl = document.getElementById('plantillaArchivo');
     const item = tpl.content.firstElementChild.cloneNode(true);
+    const id = idDriveDeEvidencia_(ev);
 
-    const nombreEl = item.querySelector('[data-role="nombre"]');
-    if (ev.url) {
-      const link = document.createElement('a');
-      link.href = ev.url;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.style.color = 'inherit';
-      link.textContent = ev.nombre;
-      nombreEl.appendChild(link);
-    } else {
-      nombreEl.textContent = ev.nombre;
-    }
+    item.querySelector('[data-role="nombre"]').textContent = ev.nombre;
     item.querySelector('[data-role="peso"]').textContent = 'Ya subido';
 
-    const icono = item.querySelector('[data-role="icono-video"]');
-    icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', iconoParaTipo(ev.tipo));
-    icono.classList.remove('oculto');
+    if (id && (ev.tipo === 'foto' || ev.tipo === 'video')) {
+      const img = item.querySelector('[data-role="miniatura"]');
+      img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
+      img.classList.remove('oculto');
+      if (ev.tipo === 'video') {
+        const play = document.createElement('div');
+        play.className = 'miniatura-play';
+        play.innerHTML = iconoSvg('icono-video');
+        img.insertAdjacentElement('afterend', play);
+      }
+    } else {
+      const icono = item.querySelector('[data-role="icono-video"]');
+      icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', iconoParaTipo(ev.tipo));
+      icono.classList.remove('oculto');
+    }
 
-    item.querySelector('[data-role="quitar-archivo"]').addEventListener('click', () => {
+    if (id) {
+      item.classList.add('previsualizable');
+      item.addEventListener('click', () => abrirPrevia(ev, id));
+    }
+
+    item.querySelector('[data-role="quitar-archivo"]').addEventListener('click', (ev2) => {
+      ev2.stopPropagation();
       const idx = sedeNodo._archivosExistentes.indexOf(ev);
       if (idx !== -1) sedeNodo._archivosExistentes.splice(idx, 1);
       item.remove();
@@ -380,6 +397,29 @@ function renderArchivosExistentes(sedeNodo, fotosLista, videosLista, documentosL
 
     contenedor.appendChild(item);
   });
+}
+
+// ─── Modal de previsualización ───────────────────────────────
+// Documentos, fotos y videos se muestran igual: el visor embebido de Drive
+// (/preview) renderiza el contenido real de los tres — para un documento
+// eso significa abrir el documento, no solo un ícono.
+
+function abrirPrevia(ev, id) {
+  const modal = document.getElementById('modalPrevia');
+  const cuerpo = modal.querySelector('[data-role="modal-cuerpo"]');
+  const enlaceAbrir = modal.querySelector('[data-role="modal-abrir"]');
+
+  modal.querySelector('[data-role="modal-nombre"]').textContent = ev.nombre;
+  enlaceAbrir.href = ev.url || `https://drive.google.com/file/d/${id}/view`;
+  cuerpo.innerHTML = `<iframe src="https://drive.google.com/file/d/${id}/preview" allow="autoplay" allowfullscreen></iframe>`;
+
+  modal.classList.remove('oculto');
+}
+
+function cerrarPrevia() {
+  const modal = document.getElementById('modalPrevia');
+  modal.classList.add('oculto');
+  modal.querySelector('[data-role="modal-cuerpo"]').innerHTML = ''; // corta video/audio en reproducción
 }
 
 // ─── Mis reportes (recuperar/editar lo ya guardado) ─────────
@@ -849,6 +889,13 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btnNuevoReporte').addEventListener('click', () => location.reload());
+
+  document.querySelectorAll('[data-role="modal-cerrar"]').forEach((el) => {
+    el.addEventListener('click', cerrarPrevia);
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') cerrarPrevia();
+  });
 
   cargarCatalogos();
 });
