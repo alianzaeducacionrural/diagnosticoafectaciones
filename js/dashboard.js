@@ -323,7 +323,7 @@ function abrirDetalle(r) {
               ${ev.tipo === 'video' ? `<span class="miniatura-play">${iconoSvg('icono-video')}</span>` : ''}
             </div>`;
           }
-          return `<div class="detalle-evidencia-item" data-id="${id}" data-nombre="${escaparHtml(ev.nombre)}" data-url="${escaparHtml(ev.url || '')}">${iconoSvg('icono-documento')}</div>`;
+          return `<div class="detalle-evidencia-item" data-id="${id}" data-nombre="${escaparHtml(ev.nombre)}" data-url="${escaparHtml(ev.url || '')}" data-tipo="documento">${iconoSvg('icono-documento')}</div>`;
         })
         .join('')}</div>`
     : '<p class="detalle-sin-evidencia">Sin evidencia adjunta todavía.</p>';
@@ -356,7 +356,7 @@ function abrirDetalle(r) {
   `;
 
   cuerpo.querySelectorAll('.detalle-evidencia-item[data-id]').forEach((el) => {
-    el.addEventListener('click', () => abrirPrevia(el.dataset.nombre, el.dataset.url, el.dataset.id));
+    el.addEventListener('click', () => abrirPrevia(el.dataset.nombre, el.dataset.url, el.dataset.id, el.dataset.tipo));
     const img = el.querySelector('img');
     if (img) img.addEventListener('error', () => { img.replaceWith(document.createRange().createContextualFragment(iconoSvg(iconoParaTipo(el.dataset.tipo)))); }, { once: true });
   });
@@ -370,9 +370,16 @@ function cerrarDetalle() {
 
 // ─── Modal de previsualización (igual que en index.html) ───
 
-function abrirPrevia(nombre, url, id) {
+function etiquetaTipo(tipo) {
+  if (tipo === 'foto') return 'Foto';
+  if (tipo === 'video') return 'Video';
+  return 'Documento';
+}
+
+function abrirPrevia(nombre, url, id, tipo) {
   const modal = document.getElementById('modalPrevia');
   modal.querySelector('[data-role="modal-nombre"]').textContent = nombre;
+  modal.querySelector('[data-role="modal-tipo"]').innerHTML = `${iconoSvg(iconoParaTipo(tipo))} ${etiquetaTipo(tipo)}`;
   modal.querySelector('[data-role="modal-abrir"]').href = url || `https://drive.google.com/file/d/${id}/view`;
   modal.querySelector('[data-role="modal-cuerpo"]').innerHTML =
     `<iframe src="https://drive.google.com/file/d/${id}/preview" allow="autoplay" allowfullscreen></iframe>`;

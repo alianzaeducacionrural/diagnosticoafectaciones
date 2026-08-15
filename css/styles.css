@@ -433,7 +433,10 @@ select.control:disabled {
 /* ─── Modal de previsualización ─────────────────────────────── */
 
 .modal-previa {
-  position: fixed; inset: 0; z-index: 200;
+  /* Por encima de cualquier otro overlay de la app (p. ej. el panel
+     lateral de detalle del dashboard, z-index 210) — si no, el modal
+     abre pero queda tapado detrás. */
+  position: fixed; inset: 0; z-index: 300;
   display: flex; align-items: center; justify-content: center;
   padding: 20px;
 }
@@ -455,6 +458,14 @@ select.control:disabled {
   display: flex; align-items: center; justify-content: space-between; gap: 10px;
   padding: 12px 14px; border-bottom: 1px solid var(--ink-200); flex-shrink: 0;
 }
+.modal-previa-titulo { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.modal-previa-tipo {
+  display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+  padding: 3px 8px; border-radius: var(--radio-pill);
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em;
+  background: var(--clay-50); color: var(--clay-700); border: 1px solid var(--clay-300);
+}
+.modal-previa-tipo .icono-svg { width: 12px; height: 12px; }
 .modal-previa-nombre { font-size: 0.85rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .modal-previa-acciones { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
 

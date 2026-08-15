@@ -312,6 +312,11 @@ function iconoParaTipo(tipo) {
   if (tipo === 'video') return '#icono-video';
   return '#icono-documento';
 }
+function etiquetaTipo(tipo) {
+  if (tipo === 'foto') return 'Foto';
+  if (tipo === 'video') return 'Video';
+  return 'Documento';
+}
 
 function agregarArchivo(sedeNodo, tipo, file, contenedorLista) {
   sedeNodo._archivos[claveArchivos(tipo)].push(file);
@@ -416,6 +421,7 @@ function abrirPrevia(ev, id) {
   const enlaceAbrir = modal.querySelector('[data-role="modal-abrir"]');
 
   modal.querySelector('[data-role="modal-nombre"]').textContent = ev.nombre;
+  modal.querySelector('[data-role="modal-tipo"]').innerHTML = `${iconoSvg(iconoParaTipo(ev.tipo).slice(1))} ${etiquetaTipo(ev.tipo)}`;
   enlaceAbrir.href = ev.url || `https://drive.google.com/file/d/${id}/view`;
   cuerpo.innerHTML = `<iframe src="https://drive.google.com/file/d/${id}/preview" allow="autoplay" allowfullscreen></iframe>`;
 
