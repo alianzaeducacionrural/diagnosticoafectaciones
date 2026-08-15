@@ -7,7 +7,9 @@ Guía para trabajar en este repositorio.
 Formulario público para que los padrinos del Comité de Cafeteros de Caldas reporten, sede por
 sede, los daños que dejó un sismo en las instituciones educativas rurales del departamento.
 Cada envío guarda una fila en Google Sheets y sube fotos, videos o documentos (PDF/Word/Excel)
-a una carpeta de Drive organizada `Municipio / Institución / Sede / {Fotos, Videos, Documentos}`.
+a una carpeta de Drive organizada `Municipio / Institución / Sede` — todas las evidencias de una
+sede quedan juntas ahí, sin subcarpetas por tipo (el nombre del archivo ya distingue FOTO/
+VIDEO/DOC).
 
 No hace falta completar todo de una vez: una sede se puede guardar solo con municipio,
 institución y sede (queda como "Borrador"), y el padrino la retoma después desde "Tus reportes
@@ -51,9 +53,17 @@ del usuario — ver `Plataformas/Seguimiento a egresados/gas/Code.gs` y
 |---|---|---|
 | GET | `catalogos` | `{ padrinos, geo, asignacion, registradas }` |
 | GET | `misRegistros&padrino=Nombre` | sedes ya guardadas por ese padrino (Borrador o Completo) |
-| POST | `iniciarSede` | crea/reutiliza carpetas; bloquea solo si la sede es de OTRO padrino |
+| GET | `todosLosRegistros` | TODAS las sedes de TODOS los padrinos — usado por el dashboard |
+| POST | `iniciarSede` | crea/reutiliza la carpeta de la sede; bloquea solo si es de OTRO padrino |
 | POST | `sesionSubida` | firma una sesión de subida reanudable de Drive API v3 |
 | POST | `guardarSede` | upsert: si la fila es del mismo padrino la actualiza, si no la crea |
+
+Acciones de mantenimiento de uso único/ocasional, protegidas con `ADMIN_KEY` (no es
+autenticación real, solo evita activarlas por accidente): `resembrarCatalogos`,
+`compartirEvidencias`, `migrarEstructuraCarpetas` (acepta `dryRun`), `limpiarHuerfanos` (acepta
+`dryRun` — compara cada carpeta de sede contra la lista de evidencias del Sheet y manda a la
+papelera lo que no está referenciado), `carpetasSinRegistro` (solo lectura — carpetas con
+archivos pero sin fila en `registros`, típicamente envíos que fallaron a mitad de camino).
 
 `RESULTS_SHEET_ID` está hardcodeado en `Code.gs` (el spreadsheet ya existe, no lo crea el
 script). El duplicado se detecta por clave natural `Municipio|Institución|Sede`
@@ -63,6 +73,19 @@ propio padrino.
 El `POST` siempre usa `Content-Type: text/plain` con body `JSON.stringify(...)` — es
 intencional, evita el preflight CORS que Apps Script no maneja. **No cambiarlo a
 `application/json`.**
+
+## Panel de control (`dashboard.html`)
+
+Página aparte, sin enlace desde `index.html` — para uso interno del programa, no de los
+padrinos. Trae **todas** las sedes de **todos** los padrinos (`accion=todosLosRegistros`) y el
+catálogo completo (`accion=catalogos`, para calcular cobertura sobre las 771 sedes). Sin build,
+sin librería de gráficos: las barras son `<div>` con `width`/CSS, al estilo de la skill
+`dataviz`. El nivel de afectación se trata como una placa de inspección de edificios (verde /
+amarillo-oliva / ámbar / terracota / rojo, escala tipo ATC-20) — mismo componente
+`.placa-nivel` reutilizado en tabla, panel de detalle y leyendas de los gráficos. El detalle de
+sede y el modal de previsualización de evidencia son una copia deliberada de la lógica de
+`js/form.js`/`renderArchivosExistentes` — dos páginas estáticas sin build, no vale la pena
+extraer un módulo compartido para esto.
 
 ## Por qué los videos no pasan por Apps Script
 

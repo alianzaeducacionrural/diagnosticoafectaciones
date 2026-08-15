@@ -371,6 +371,12 @@ function renderArchivosExistentes(sedeNodo, fotosLista, videosLista, documentosL
       const img = item.querySelector('[data-role="miniatura"]');
       img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w200`;
       img.classList.remove('oculto');
+      img.addEventListener('error', () => {
+        img.classList.add('oculto');
+        const icono = item.querySelector('[data-role="icono-video"]');
+        icono.querySelector('[data-role="icono-tipo"] use').setAttribute('href', iconoParaTipo(ev.tipo));
+        icono.classList.remove('oculto');
+      }, { once: true });
       if (ev.tipo === 'video') {
         const play = document.createElement('div');
         play.className = 'miniatura-play';
