@@ -688,7 +688,7 @@ async function procesarSede(info, onProgreso) {
 
   for (const file of info.archivos.fotos) {
     const nombreBase = construirNombreBase(info.municipio, info.institucion, info.sede, 'foto', indiceFoto++);
-    const resultado = await subirArchivo(file, ini.data.carpetaFotosId, 'foto', nombreBase, (frac) => {
+    const resultado = await subirArchivo(file, ini.data.carpetaSedeId, 'foto', nombreBase, (frac) => {
       onProgreso(`Subiendo ${nombreBase}… ${Math.round(frac * 100)}%`);
     });
     procesados++;
@@ -698,7 +698,7 @@ async function procesarSede(info, onProgreso) {
 
   for (const file of info.archivos.videos) {
     const nombreBase = construirNombreBase(info.municipio, info.institucion, info.sede, 'video', indiceVideo++);
-    const resultado = await subirArchivo(file, ini.data.carpetaVideosId, 'video', nombreBase, (frac) => {
+    const resultado = await subirArchivo(file, ini.data.carpetaSedeId, 'video', nombreBase, (frac) => {
       onProgreso(`Subiendo ${nombreBase}… ${Math.round(frac * 100)}%`);
     });
     procesados++;
@@ -708,7 +708,7 @@ async function procesarSede(info, onProgreso) {
 
   for (const file of info.archivos.documentos) {
     const nombreBase = construirNombreBase(info.municipio, info.institucion, info.sede, 'documento', indiceDocumento++);
-    const resultado = await subirArchivo(file, ini.data.carpetaDocumentosId, 'documento', nombreBase, (frac) => {
+    const resultado = await subirArchivo(file, ini.data.carpetaSedeId, 'documento', nombreBase, (frac) => {
       onProgreso(`Subiendo ${nombreBase}… ${Math.round(frac * 100)}%`);
     });
     procesados++;

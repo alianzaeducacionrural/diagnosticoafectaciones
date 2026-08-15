@@ -66,6 +66,7 @@ function doGet(e) {
     var accion = (e && e.parameter && e.parameter.accion) || '';
     if (accion === 'catalogos') return jsonResponse(getCatalogos_());
     if (accion === 'misRegistros') return jsonResponse(misRegistros_((e.parameter && e.parameter.padrino) || ''));
+    if (accion === 'todosLosRegistros') return jsonResponse(todosLosRegistros_());
     return errorResponse('Acción no reconocida: ' + accion);
   } catch (err) {
     return errorResponse(err.message);
@@ -87,6 +88,12 @@ function doPost(e) {
         return jsonResponse(resembrarCatalogos_(datos));
       case 'compartirEvidencias':
         return jsonResponse(compartirEvidencias_(datos));
+      case 'migrarEstructuraCarpetas':
+        return jsonResponse(migrarEstructuraCarpetas_(datos));
+      case 'limpiarHuerfanos':
+        return jsonResponse(limpiarHuerfanos_(datos));
+      case 'carpetasSinRegistro':
+        return jsonResponse(carpetasSinRegistro_(datos));
       default:
         return errorResponse('Acción no reconocida: ' + accion);
     }
@@ -213,10 +220,12 @@ function misRegistros_(nombrePadrino) {
 }
 
 // ─── POST accion=iniciarSede ────────────────────────────────
-// Crea/reutiliza el árbol de carpetas Municipio/Institución/Sede/{Fotos,Videos}
-// dentro de DRIVE_ROOT_ID. Si la sede ya fue guardada por OTRO padrino, la
-// bloquea; si es del mismo padrino (retomando un borrador), la deja seguir —
-// es idempotente: reutiliza las mismas carpetas ya creadas.
+// Crea/reutiliza el árbol de carpetas Municipio/Institución/Sede dentro de
+// DRIVE_ROOT_ID — fotos, videos y documentos quedan todos juntos en la
+// carpeta de la sede (sin subcarpetas por tipo). Si la sede ya fue guardada
+// por OTRO padrino, la bloquea; si es del mismo padrino (retomando un
+// borrador), la deja seguir — es idempotente: reutiliza la misma carpeta ya
+// creada.
 
 function iniciarSede_(datos) {
   var municipio = String(datos.municipio || '').trim();
@@ -243,16 +252,10 @@ function iniciarSede_(datos) {
     var carpetaMun = obtenerOCrearCarpeta_(raiz, municipio);
     var carpetaIE = obtenerOCrearCarpeta_(carpetaMun, institucion);
     var carpetaSede = obtenerOCrearCarpeta_(carpetaIE, sede);
-    var carpetaFotos = obtenerOCrearCarpeta_(carpetaSede, 'Fotos');
-    var carpetaVideos = obtenerOCrearCarpeta_(carpetaSede, 'Videos');
-    var carpetaDocumentos = obtenerOCrearCarpeta_(carpetaSede, 'Documentos');
 
     return {
       carpetaSedeId: carpetaSede.getId(),
       urlSede: carpetaSede.getUrl(),
-      carpetaFotosId: carpetaFotos.getId(),
-      carpetaVideosId: carpetaVideos.getId(),
-      carpetaDocumentosId: carpetaDocumentos.getId(),
     };
   } finally {
     lock.releaseLock();
@@ -427,6 +430,195 @@ function compartirEvidencias_(datos) {
   var carpeta = DriveApp.getFolderById(DRIVE_ROOT_ID);
   carpeta.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   return { ok: true, carpeta: carpeta.getName() };
+}
+
+// ─── POST accion=migrarEstructuraCarpetas (uso único) ───────
+// Recorre TODA la carpeta raíz (Municipio/Institución/Sede) y, donde
+// encuentre subcarpetas "Fotos"/"Videos"/"Documentos" dentro de una sede,
+// mueve sus archivos a la carpeta de la sede y borra (a la papelera) la
+// subcarpeta vacía. Con datos.dryRun=true no mueve ni borra nada, solo
+// cuenta — para revisar el alcance antes de ejecutar de verdad.
+function migrarEstructuraCarpetas_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var dryRun = !!(datos && datos.dryRun);
+  var resultado = { dryRun: dryRun, sedesRevisadas: 0, archivosMovidos: 0, subcarpetasEliminadas: 0 };
+
+  var raiz = DriveApp.getFolderById(DRIVE_ROOT_ID);
+  var municipios = raiz.getFolders();
+  while (municipios.hasNext()) {
+    var instituciones = municipios.next().getFolders();
+    while (instituciones.hasNext()) {
+      var sedes = instituciones.next().getFolders();
+      while (sedes.hasNext()) {
+        var carpetaSede = sedes.next();
+        resultado.sedesRevisadas++;
+        ['Fotos', 'Videos', 'Documentos'].forEach(function (nombreSub) {
+          var subIter = carpetaSede.getFoldersByName(nombreSub);
+          while (subIter.hasNext()) {
+            var sub = subIter.next();
+            var archivos = sub.getFiles();
+            while (archivos.hasNext()) {
+              var archivo = archivos.next();
+              if (!dryRun) {
+                carpetaSede.addFile(archivo);
+                sub.removeFile(archivo);
+              }
+              resultado.archivosMovidos++;
+            }
+            if (!dryRun) sub.setTrashed(true);
+            resultado.subcarpetasEliminadas++;
+          }
+        });
+      }
+    }
+  }
+  return resultado;
+}
+
+// ─── POST accion=limpiarHuerfanos (uso único) ────────────────
+// Para cada sede ya guardada en "registros", compara los archivos que hay
+// de verdad en su carpeta de Drive contra la lista de evidencias del Sheet
+// (la fuente de verdad de lo que debería existir — se sobreescribe completa
+// en cada guardarSede_). Un archivo en Drive que no está en esa lista es un
+// huérfano: casi siempre una subida repetida de un envío que falló a mitad
+// de camino y se reintentó. Con datos.dryRun=true solo reporta, sin borrar.
+function limpiarHuerfanos_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var dryRun = !!(datos && datos.dryRun);
+  var resultado = { dryRun: dryRun, sedesRevisadas: 0, huerfanos: [] };
+
+  var sheet = getSheet_('registros');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return resultado;
+
+  var filas = sheet.getRange(2, 1, lastRow - 1, HEADERS_REGISTROS.length).getValues();
+  filas.forEach(function (f, i) {
+    var urlSede = String(f[15] || '');
+    var idSede = idDeUrlDrive_(urlSede);
+    if (!idSede) return;
+
+    var referenciados = {};
+    try {
+      (JSON.parse(f[16] || '[]')).forEach(function (ev) {
+        var id = ev.id || idDeUrlDrive_(ev.url || '');
+        if (id) referenciados[id] = true;
+      });
+    } catch (e) { /* evidencias mal formadas: no se toca nada de esa sede */ return; }
+
+    try {
+      var carpeta = DriveApp.getFolderById(idSede);
+      var archivos = carpeta.getFiles();
+      while (archivos.hasNext()) {
+        var archivo = archivos.next();
+        var id = archivo.getId();
+        if (referenciados[id]) continue;
+        resultado.huerfanos.push({
+          fila: i + 2, municipio: f[4], institucion: f[5], sede: f[9],
+          nombre: archivo.getName(), id: id, tamanoBytes: archivo.getSize(),
+        });
+        if (!dryRun) archivo.setTrashed(true);
+      }
+    } catch (e) { /* carpeta no encontrada u otro error: se omite esa sede */ }
+
+    resultado.sedesRevisadas++;
+  });
+
+  return resultado;
+}
+
+// ─── POST accion=carpetasSinRegistro (solo lectura) ─────────
+// Recorre Municipio/Institución/Sede y reporta las carpetas de sede que
+// tienen archivos pero NINGUNA fila correspondiente en "registros" — casi
+// siempre evidencia que sí se subió pero cuyo envío nunca llegó a
+// guardarSede_ (falló a mitad de camino, p. ej. por el bug de CORS ya
+// corregido). No borra nada — es puramente informativo, para decidir si
+// hay que avisarle al padrino que retome esa sede.
+function carpetasSinRegistro_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+
+  var claves = {};
+  var sheet = getSheet_('registros');
+  var lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    var filas = sheet.getRange(2, 1, lastRow - 1, HEADERS_REGISTROS.length).getValues();
+    filas.forEach(function (f) {
+      claves[claveSede_(f[COL.MUNICIPIO - 1], f[COL.INSTITUCION - 1], f[COL.SEDE - 1])] = true;
+    });
+  }
+
+  var resultado = { sedesSinRegistro: [] };
+  var raiz = DriveApp.getFolderById(DRIVE_ROOT_ID);
+  var municipios = raiz.getFolders();
+  while (municipios.hasNext()) {
+    var carpetaMun = municipios.next();
+    var instituciones = carpetaMun.getFolders();
+    while (instituciones.hasNext()) {
+      var carpetaIE = instituciones.next();
+      var sedes = carpetaIE.getFolders();
+      while (sedes.hasNext()) {
+        var carpetaSede = sedes.next();
+        var clave = claveSede_(carpetaMun.getName(), carpetaIE.getName(), carpetaSede.getName());
+        if (claves[clave]) continue;
+
+        var archivos = [];
+        var iterArch = carpetaSede.getFiles();
+        while (iterArch.hasNext()) {
+          var a = iterArch.next();
+          archivos.push({ nombre: a.getName(), tamanoBytes: a.getSize(), id: a.getId() });
+        }
+        var subs = carpetaSede.getFolders();
+        while (subs.hasNext()) {
+          var sub = subs.next();
+          var iterArch2 = sub.getFiles();
+          while (iterArch2.hasNext()) {
+            var a2 = iterArch2.next();
+            archivos.push({ nombre: sub.getName() + '/' + a2.getName(), tamanoBytes: a2.getSize(), id: a2.getId() });
+          }
+        }
+
+        if (archivos.length > 0) {
+          resultado.sedesSinRegistro.push({
+            municipio: carpetaMun.getName(), institucion: carpetaIE.getName(), sede: carpetaSede.getName(),
+            urlSede: carpetaSede.getUrl(), archivos: archivos,
+          });
+        }
+      }
+    }
+  }
+  return resultado;
+}
+
+function idDeUrlDrive_(url) {
+  var m = /\/d\/([^/]+)/.exec(url) || /folders\/([^/?]+)/.exec(url);
+  return m ? m[1] : '';
+}
+
+// ─── GET/POST accion=todosLosRegistros ──────────────────────
+// Todas las sedes registradas (de cualquier padrino), para el dashboard de
+// control. A diferencia de misRegistros_ (que filtra por un padrino), esto
+// no filtra nada — es de solo lectura, no requiere clave: la evidencia ya
+// es visible por enlace de todos modos (ver compartirEvidencias_).
+function todosLosRegistros_() {
+  var sheet = getSheet_('registros');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+
+  var filas = sheet.getRange(2, 1, lastRow - 1, HEADERS_REGISTROS.length).getValues();
+  return filas.map(function (f, i) {
+    var evidencias = [];
+    try { evidencias = JSON.parse(f[16] || '[]'); } catch (e) { evidencias = []; }
+    return {
+      numeroFila: i + 2,
+      timestamp: f[0],
+      padrino: f[1], correoPadrino: f[2], telefonoPadrino: f[3],
+      municipio: f[4], institucion: f[5],
+      rectorNombre: f[6], rectorCorreo: f[7], rectorTelefono: f[8],
+      sede: f[9], nivel: f[10], descripcion: f[11],
+      numFotos: f[12], numVideos: f[13], numDocumentos: f[14],
+      urlSede: f[15], evidencias: evidencias,
+      estado: f[17] || 'Borrador',
+    };
+  });
 }
 
 // ─── Funciones auxiliares para leer/escribir el spreadsheet ─
