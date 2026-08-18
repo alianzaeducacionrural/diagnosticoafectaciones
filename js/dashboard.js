@@ -197,6 +197,11 @@ function renderGraficoNivel(filtrados) {
 
   cont.querySelectorAll('details[data-clave]').forEach((det) => {
     det.addEventListener('toggle', () => {
+      // Un <details> abierto que se destruye al reconstruir el gráfico
+      // (innerHTML) puede disparar un 'toggle' fantasma ya desconectado
+      // del documento — ignorarlo evita que pise el estado que se acaba
+      // de fijar (p. ej. "Limpiar filtros").
+      if (!det.isConnected) return;
       document.getElementById('filtroNivel').value = det.open ? det.dataset.clave : '';
       renderizarTodo();
     });
@@ -264,6 +269,7 @@ function renderGraficoMunicipio(filtrados) {
 
   cont.querySelectorAll('details[data-clave]').forEach((det) => {
     det.addEventListener('toggle', () => {
+      if (!det.isConnected) return; // ver nota en renderGraficoNivel
       document.getElementById('filtroMunicipio').value = det.open ? det.dataset.clave : '';
       renderizarTodo();
     });
