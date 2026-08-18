@@ -176,9 +176,13 @@
 .fila-barra-detalle-wrap[open] > .fila-barra-click .valor-barra { color: var(--clay-700); }
 
 .detalle-expandido {
+  /* Sin animación de entrada a propósito: dentro de un <details> recién
+     abierto, la animación opacity 0→1 se queda pegada en 0 en vez de
+     asentar en 1 al terminar (reproducible tanto en Chrome real como en
+     headless) — el desglose de nivel quedaba invisible aunque el HTML
+     estuviera bien armado. */
   display: flex; flex-wrap: wrap; gap: 6px 10px;
   padding: 8px 6px 10px 6px; margin: 0 -6px 4px;
-  animation: entrada-archivo 0.18s var(--ease-out);
 }
 .detalle-expandido-item {
   display: flex; align-items: center; gap: 6px;
