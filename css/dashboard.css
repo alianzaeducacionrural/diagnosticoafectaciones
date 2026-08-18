@@ -159,7 +159,17 @@
 .barras-horizontales { display: flex; flex-direction: column; gap: 10px; }
 .barras-municipio { max-height: 360px; overflow-y: auto; padding-right: 4px; }
 
-.fila-barra { display: grid; grid-template-columns: 140px 1fr 40px; align-items: center; gap: 10px; }
+.fila-barra {
+  display: grid; grid-template-columns: 140px 1fr 40px; align-items: center; gap: 10px;
+  padding: 3px 6px; margin: 0 -6px; border-radius: 8px; border: 1px solid transparent;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+.fila-barra-click { cursor: pointer; }
+.fila-barra-click:hover { background: var(--clay-50); }
+.fila-barra-click:hover .etiqueta-barra { color: var(--clay-700); font-weight: 600; }
+.fila-barra-click.activo { background: var(--clay-50); border-color: var(--clay-300); }
+.fila-barra-click.activo .etiqueta-barra { color: var(--clay-700); font-weight: 700; }
+.fila-barra-click.activo .valor-barra { color: var(--clay-700); }
 .fila-barra .etiqueta-barra {
   font-size: 0.82rem; color: var(--ink-700); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   cursor: default;
