@@ -118,6 +118,22 @@ function renderizarTodo() {
   renderGraficoNivel(filtrados);
   renderGraficoMunicipio(filtrados);
   renderTabla(filtrados);
+  requestAnimationFrame(igualarAlturaGraficos);
+}
+
+// Iguala la altura de la tarjeta "Sedes reportadas por municipio" a la de
+// "Nivel de afectación" (pantallas anchas, ambas en la misma fila). La
+// lista de municipios llena ese alto con scroll interno — ver el media
+// query de .grafico-municipio en dashboard.css.
+function igualarAlturaGraficos() {
+  const nivel = document.querySelector('.grafico-nivel');
+  const municipio = document.querySelector('.grafico-municipio');
+  if (!nivel || !municipio) return;
+  if (window.innerWidth <= 1000) {
+    municipio.style.height = '';
+    return;
+  }
+  municipio.style.height = nivel.getBoundingClientRect().height + 'px';
 }
 
 // ─── KPIs ────────────────────────────────────────────────────
@@ -471,6 +487,12 @@ function descargarCsv() {
 // ─── Inicialización ──────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  let temporizadorResize;
+  window.addEventListener('resize', () => {
+    clearTimeout(temporizadorResize);
+    temporizadorResize = setTimeout(igualarAlturaGraficos, 150);
+  });
+
   ['filtroTexto', 'filtroMunicipio', 'filtroNivel', 'filtroEstado', 'filtroPadrino'].forEach((id) => {
     const el = document.getElementById(id);
     el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', renderizarTodo);

@@ -92,6 +92,8 @@ function doPost(e) {
         return jsonResponse(migrarEstructuraCarpetas_(datos));
       case 'limpiarHuerfanos':
         return jsonResponse(limpiarHuerfanos_(datos));
+      case 'repararEvidenciasFaltantes':
+        return jsonResponse(repararEvidenciasFaltantes_(datos));
       case 'listarCarpeta':
         return jsonResponse(listarCarpeta_(datos));
       case 'carpetasSinRegistro':
@@ -397,7 +399,7 @@ function guardarSede_(datos) {
     var fotos = evidencias.filter(function (ev) { return ev.tipo === 'foto'; });
     var videos = evidencias.filter(function (ev) { return ev.tipo === 'video'; });
     var documentos = evidencias.filter(function (ev) { return ev.tipo === 'documento'; });
-    var estado = (descripcion && evidencias.length > 0) ? 'Completo' : 'Borrador';
+    var estado = evidencias.length > 0 ? 'Completo' : 'Borrador';
 
     var fila = [
       new Date(),
@@ -616,6 +618,130 @@ function listarCarpeta_(datos) {
 function idDeUrlDrive_(url) {
   var m = /\/d\/([^/]+)/.exec(url) || /folders\/([^/?]+)/.exec(url);
   return m ? m[1] : '';
+}
+
+// ─── POST accion=repararEvidenciasFaltantes (uso único) ─────
+// Para cada sede en "registros" que quedó en Borrador con CERO evidencias
+// registradas, revisa si su carpeta de Drive en realidad sí tiene archivos
+// (subida que sí llegó a Drive pero cuyo guardarSede_ final nunca se
+// completó — mismo síntoma que motivó el aviso de "sede sin evidencia"
+// antes de enviar). Si hay archivos, los agrega a "Evidencias (JSON)" y
+// pasa el Estado a "Completo".
+//
+// Ojo con reintentos: si el padrino reenvió la sede completa más de una vez
+// tras el fallo, puede haber varias copias del mismo archivo (mismo tamaño
+// en bytes) en la carpeta. Se conserva solo la copia más antigua de cada
+// tamaño distinto como evidencia real; las demás se mandan a la papelera
+// (no se cuentan como evidencia duplicada).
+//
+// Sedes que YA tenían al menos una evidencia registrada no se tocan aquí —
+// si su carpeta tiene archivos extra sin referenciar, es el mismo patrón de
+// reintento duplicado y lo resuelve limpiarHuerfanos_ (that pass no vuelve
+// a contarlos como evidencia nueva, los manda a la papelera directamente).
+// Aparte, para cualquier sede con evidencia ya registrada que seguía en
+// Borrador solo por falta de descripción, se corrige el Estado a "Completo"
+// sin tocar archivos (mismo criterio que ahora usa guardarSede_: tener
+// evidencia basta para estar completa).
+//
+// Con datos.dryRun=true solo reporta, sin escribir ni borrar nada.
+function repararEvidenciasFaltantes_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var dryRun = !!(datos && datos.dryRun);
+  var resultado = { dryRun: dryRun, sedesRevisadas: 0, sedesReparadas: [] };
+
+  var sheet = getSheet_('registros');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return resultado;
+
+  var filas = sheet.getRange(2, 1, lastRow - 1, HEADERS_REGISTROS.length).getValues();
+  filas.forEach(function (f, i) {
+    var urlSede = String(f[15] || '');
+    var idSede = idDeUrlDrive_(urlSede);
+    if (!idSede) return;
+    resultado.sedesRevisadas++;
+
+    var evidenciasActuales = [];
+    try { evidenciasActuales = JSON.parse(f[16] || '[]'); } catch (e) { evidenciasActuales = []; }
+    var estadoAnterior = f[17] || 'Borrador';
+
+    var nuevasEvidencias = evidenciasActuales;
+    var duplicadosDescartados = [];
+
+    if (evidenciasActuales.length === 0) {
+      var archivosReales;
+      try {
+        var carpeta = DriveApp.getFolderById(idSede);
+        archivosReales = [];
+        var iter = carpeta.getFiles();
+        while (iter.hasNext()) archivosReales.push(iter.next());
+      } catch (e) { return; } // carpeta no encontrada: se omite esa sede
+
+      if (archivosReales.length > 0) {
+        // Deduplicar por tamaño en bytes (mismo tamaño = mismo archivo
+        // reenviado): se conserva el más antiguo de cada grupo.
+        archivosReales.sort(function (a, b) { return a.getDateCreated() - b.getDateCreated(); });
+        var vistosPorTamano = {};
+        archivosReales.forEach(function (archivo) {
+          var tamano = archivo.getSize();
+          if (vistosPorTamano[tamano]) {
+            duplicadosDescartados.push(archivo);
+            return;
+          }
+          vistosPorTamano[tamano] = archivo;
+        });
+
+        nuevasEvidencias = Object.keys(vistosPorTamano).map(function (tamano) {
+          var archivo = vistosPorTamano[tamano];
+          return {
+            nombre: archivo.getName(),
+            url: 'https://drive.google.com/file/d/' + archivo.getId() + '/view',
+            tipo: tipoPorNombreArchivo_(archivo.getName()),
+            id: archivo.getId(),
+          };
+        });
+      }
+    }
+
+    var nuevoEstado = nuevasEvidencias.length > 0 ? 'Completo' : estadoAnterior;
+    var cambioEvidencias = nuevasEvidencias !== evidenciasActuales;
+    if (!cambioEvidencias && nuevoEstado === estadoAnterior) return; // nada que hacer
+
+    if (cambioEvidencias) {
+      resultado.sedesReparadas.push({
+        fila: i + 2, municipio: f[4], institucion: f[5], sede: f[9],
+        archivosAgregados: nuevasEvidencias.map(function (ev) { return ev.nombre; }),
+        duplicadosDescartados: duplicadosDescartados.map(function (a) { return a.getName(); }),
+        estadoAnterior: estadoAnterior, estadoNuevo: nuevoEstado,
+      });
+    } else {
+      resultado.sedesReparadas.push({
+        fila: i + 2, municipio: f[4], institucion: f[5], sede: f[9],
+        soloEstado: true, estadoAnterior: estadoAnterior, estadoNuevo: nuevoEstado,
+      });
+    }
+
+    if (!dryRun) {
+      if (cambioEvidencias) {
+        var fotos = nuevasEvidencias.filter(function (ev) { return ev.tipo === 'foto'; });
+        var videos = nuevasEvidencias.filter(function (ev) { return ev.tipo === 'video'; });
+        var documentos = nuevasEvidencias.filter(function (ev) { return ev.tipo === 'documento'; });
+        sheet.getRange(i + 2, 13).setValue(fotos.length);
+        sheet.getRange(i + 2, 14).setValue(videos.length);
+        sheet.getRange(i + 2, 15).setValue(documentos.length);
+        sheet.getRange(i + 2, 17).setValue(JSON.stringify(nuevasEvidencias));
+        duplicadosDescartados.forEach(function (archivo) { archivo.setTrashed(true); });
+      }
+      sheet.getRange(i + 2, 18).setValue(nuevoEstado);
+    }
+  });
+
+  return resultado;
+}
+
+function tipoPorNombreArchivo_(nombre) {
+  if (/-FOTO-/.test(nombre)) return 'foto';
+  if (/-VIDEO-/.test(nombre)) return 'video';
+  return 'documento';
 }
 
 // ─── GET/POST accion=todosLosRegistros ──────────────────────
