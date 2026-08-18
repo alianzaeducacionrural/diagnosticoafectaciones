@@ -9,9 +9,11 @@
 
 :root {
   /* Escala de severidad — 5 pasos ordenados, Sin daños → Inhabilitada.
-     "Grave" reutiliza el terracota de marca (clay-700/100/300): el color
-     de identidad del programa se vuelve, en este contexto, la señal de
-     alarma más intensa antes del rojo de "Inhabilitada". */
+     "Grave" usaba el terracota de marca (clay-600 #A8441F), casi el mismo
+     tono que el rojo de "Inhabilitada" (#B23A2E) — ΔE de solo 3.2, indistin-
+     guible a simple vista (confirmado con el validador de la skill dataviz).
+     Se reemplaza por un naranja propio, validado contra Inhabilitada
+     (ΔE 17.1) y contra fondo blanco (contraste 7.3:1). */
   --nivel-sindanos-ink:  var(--safe-ink);
   --nivel-sindanos-bg:   var(--safe-bg);
   --nivel-sindanos-bd:   var(--safe-border);
@@ -27,10 +29,10 @@
   --nivel-moderado-bd:  var(--caution-border);
   --nivel-moderado:     var(--caution);
 
-  --nivel-grave-ink: var(--clay-700);
-  --nivel-grave-bg:  var(--clay-100);
-  --nivel-grave-bd:  var(--clay-300);
-  --nivel-grave:     var(--clay-600);
+  --nivel-grave-ink: #8A4310;
+  --nivel-grave-bg:  #FBEEDD;
+  --nivel-grave-bd:  #EDC08A;
+  --nivel-grave:     #D97B1E;
 
   --nivel-inhab-ink: var(--danger-ink);
   --nivel-inhab-bg:  var(--danger-bg);
