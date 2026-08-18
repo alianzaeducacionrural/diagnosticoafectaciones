@@ -891,7 +891,25 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     banner.classList.add('oculto');
-    enviarSedes(recolectarSedes());
+
+    const sedes = recolectarSedes();
+    // Aviso explícito si alguna sede se va a enviar sin ninguna evidencia —
+    // para no depender de que el padrino se dé cuenta solo, mirando la
+    // lista de archivos adjuntos.
+    const sinEvidencia = sedes.filter((s) => {
+      const nuevas = s.archivos.fotos.length + s.archivos.videos.length + s.archivos.documentos.length;
+      return nuevas + s.archivosExistentes.length === 0;
+    });
+    if (sinEvidencia.length > 0) {
+      const lista = sinEvidencia.map((s) => `• ${s.institucion} — ${s.sede}`).join('\n');
+      const confirmado = window.confirm(
+        `${sinEvidencia.length} sede(s) no tienen ninguna foto, video o documento adjunto:\n\n${lista}\n\n` +
+        'Se guardarán como Borrador, sin evidencia. ¿Enviar de todas formas?'
+      );
+      if (!confirmado) return;
+    }
+
+    enviarSedes(sedes);
   });
 
   document.getElementById('btnReintentarFallidas').addEventListener('click', () => {

@@ -92,6 +92,8 @@ function doPost(e) {
         return jsonResponse(migrarEstructuraCarpetas_(datos));
       case 'limpiarHuerfanos':
         return jsonResponse(limpiarHuerfanos_(datos));
+      case 'listarCarpeta':
+        return jsonResponse(listarCarpeta_(datos));
       case 'carpetasSinRegistro':
         return jsonResponse(carpetasSinRegistro_(datos));
       default:
@@ -586,6 +588,29 @@ function carpetasSinRegistro_(datos) {
     }
   }
   return resultado;
+}
+
+// ─── POST accion=listarCarpeta (diagnóstico, solo lectura) ──
+// Lista archivos y subcarpetas de una carpeta puntual — para revisar a
+// mano si una subida realmente llegó a Drive aunque el Sheet no la tenga.
+function listarCarpeta_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var carpetaId = String((datos && datos.carpetaId) || '').trim();
+  if (!carpetaId) throw new Error('Falta carpetaId.');
+
+  var carpeta = DriveApp.getFolderById(carpetaId);
+  var archivos = [];
+  var iterArch = carpeta.getFiles();
+  while (iterArch.hasNext()) {
+    var a = iterArch.next();
+    archivos.push({ nombre: a.getName(), tamanoBytes: a.getSize(), id: a.getId(), creado: a.getDateCreated() });
+  }
+  var subcarpetas = [];
+  var iterSub = carpeta.getFolders();
+  while (iterSub.hasNext()) {
+    subcarpetas.push(iterSub.next().getName());
+  }
+  return { nombre: carpeta.getName(), archivos: archivos, subcarpetas: subcarpetas };
 }
 
 function idDeUrlDrive_(url) {

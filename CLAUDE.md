@@ -63,7 +63,9 @@ autenticación real, solo evita activarlas por accidente): `resembrarCatalogos`,
 `compartirEvidencias`, `migrarEstructuraCarpetas` (acepta `dryRun`), `limpiarHuerfanos` (acepta
 `dryRun` — compara cada carpeta de sede contra la lista de evidencias del Sheet y manda a la
 papelera lo que no está referenciado), `carpetasSinRegistro` (solo lectura — carpetas con
-archivos pero sin fila en `registros`, típicamente envíos que fallaron a mitad de camino).
+archivos pero sin fila en `registros`, típicamente envíos que fallaron a mitad de camino),
+`listarCarpeta` (solo lectura — archivos y subcarpetas de una carpeta puntual, para verificar a
+mano si una subida llegó a Drive).
 
 `RESULTS_SHEET_ID` está hardcodeado en `Code.gs` (el spreadsheet ya existe, no lo crea el
 script). El duplicado se detecta por clave natural `Municipio|Institución|Sede`
