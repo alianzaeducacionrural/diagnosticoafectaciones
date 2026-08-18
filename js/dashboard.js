@@ -165,6 +165,7 @@ function renderGraficoNivel(filtrados) {
       const etiqueta = clave === NIVEL_SIN_CLASIFICAR ? 'Sin clasificar' : clave;
       const n = conteos[i];
       const pct = Math.round((n / max) * 100);
+      const abierto = nivelActivo === clave;
 
       // Desglose SOLO de esta franja de nivel: qué municipios la componen.
       const porMun = {};
@@ -173,36 +174,31 @@ function renderGraficoNivel(filtrados) {
         porMun[r.municipio] = (porMun[r.municipio] || 0) + 1;
       });
       const detalle = Object.entries(porMun).sort((a, b) => b[1] - a[1]);
-      const abierto = nivelActivo === clave;
 
       return `
-        <details class="fila-barra-detalle-wrap" data-clave="${clave}"${abierto ? ' open' : ''}>
-          <summary class="fila-barra fila-barra-click">
+        <div class="fila-barra-detalle-wrap${abierto ? ' abierto' : ''}" data-clave="${clave}">
+          <div class="fila-barra fila-barra-click" data-role="fila-clicable">
             <span class="etiqueta-barra">${escaparHtml(etiqueta)}</span>
             <div class="pista-barra">
               <div class="segmento" style="width:${pct}%; background:${claseNivelBg(clave)};"></div>
             </div>
             <span class="valor-barra">${n}</span>
-          </summary>
-          <div class="detalle-expandido">
+          </div>
+          <div class="detalle-expandido"${abierto ? '' : ' style="display:none;"'}>
             ${
               detalle.length
                 ? detalle.map(([mun, cant]) => `<div class="detalle-expandido-item"><span>${escaparHtml(mun)}</span><span>${cant}</span></div>`).join('')
                 : '<p class="detalle-expandido-vacio">Sin sedes en este nivel.</p>'
             }
           </div>
-        </details>`;
+        </div>`;
     })
     .join('');
 
-  cont.querySelectorAll('details[data-clave]').forEach((det) => {
-    det.addEventListener('toggle', () => {
-      // Un <details> abierto que se destruye al reconstruir el gráfico
-      // (innerHTML) puede disparar un 'toggle' fantasma ya desconectado
-      // del documento — ignorarlo evita que pise el estado que se acaba
-      // de fijar (p. ej. "Limpiar filtros").
-      if (!det.isConnected) return;
-      document.getElementById('filtroNivel').value = det.open ? det.dataset.clave : '';
+  cont.querySelectorAll('[data-clave]').forEach((fila) => {
+    fila.querySelector('[data-role="fila-clicable"]').addEventListener('click', () => {
+      const sel = document.getElementById('filtroNivel');
+      sel.value = sel.value === fila.dataset.clave ? '' : fila.dataset.clave;
       renderizarTodo();
     });
   });
@@ -247,15 +243,15 @@ function renderGraficoMunicipio(filtrados) {
       const abierto = municipioActivo === f.mun;
 
       return `
-        <details class="fila-barra-detalle-wrap" data-clave="${escaparHtml(f.mun)}"${abierto ? ' open' : ''}>
-          <summary class="fila-barra fila-barra-click">
+        <div class="fila-barra-detalle-wrap${abierto ? ' abierto' : ''}" data-clave="${escaparHtml(f.mun)}">
+          <div class="fila-barra fila-barra-click" data-role="fila-clicable">
             <span class="etiqueta-barra">${escaparHtml(f.mun)}</span>
             <div class="pista-barra" style="width:100%;">
               <div style="display:flex; width:${anchoTotal}%; height:100%;">${segmentos}</div>
             </div>
             <span class="valor-barra">${f.total}</span>
-          </summary>
-          <div class="detalle-expandido">
+          </div>
+          <div class="detalle-expandido"${abierto ? '' : ' style="display:none;"'}>
             ${detalle
               .map(
                 (c) =>
@@ -263,14 +259,14 @@ function renderGraficoMunicipio(filtrados) {
               )
               .join('')}
           </div>
-        </details>`;
+        </div>`;
     })
     .join('');
 
-  cont.querySelectorAll('details[data-clave]').forEach((det) => {
-    det.addEventListener('toggle', () => {
-      if (!det.isConnected) return; // ver nota en renderGraficoNivel
-      document.getElementById('filtroMunicipio').value = det.open ? det.dataset.clave : '';
+  cont.querySelectorAll('[data-clave]').forEach((fila) => {
+    fila.querySelector('[data-role="fila-clicable"]').addEventListener('click', () => {
+      const sel = document.getElementById('filtroMunicipio');
+      sel.value = sel.value === fila.dataset.clave ? '' : fila.dataset.clave;
       renderizarTodo();
     });
   });
