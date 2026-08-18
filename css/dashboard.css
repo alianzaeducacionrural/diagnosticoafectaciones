@@ -157,7 +157,7 @@
 .panel-graficos { display: grid; grid-template-columns: 1fr 1.3fr; gap: 14px; margin-bottom: 18px; }
 
 .barras-horizontales { display: flex; flex-direction: column; gap: 10px; }
-.barras-municipio { max-height: 360px; overflow-y: auto; padding-right: 4px; }
+.barras-municipio { max-height: 360px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
 
 .fila-barra {
   display: grid; grid-template-columns: 140px 1fr 40px; align-items: center; gap: 10px;

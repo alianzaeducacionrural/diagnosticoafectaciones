@@ -158,6 +158,7 @@ function renderGraficoNivel(filtrados) {
   const claves = [...NIVELES, NIVEL_SIN_CLASIFICAR];
   const conteos = claves.map((c) => filtrados.filter((r) => r.nivelClave === c).length);
   const max = Math.max(...conteos, 1);
+  const nivelActivo = document.getElementById('filtroNivel').value;
 
   cont.innerHTML = claves
     .map((clave, i) => {
@@ -172,9 +173,10 @@ function renderGraficoNivel(filtrados) {
         porMun[r.municipio] = (porMun[r.municipio] || 0) + 1;
       });
       const detalle = Object.entries(porMun).sort((a, b) => b[1] - a[1]);
+      const abierto = nivelActivo === clave;
 
       return `
-        <details class="fila-barra-detalle-wrap">
+        <details class="fila-barra-detalle-wrap" data-clave="${clave}"${abierto ? ' open' : ''}>
           <summary class="fila-barra fila-barra-click">
             <span class="etiqueta-barra">${escaparHtml(etiqueta)}</span>
             <div class="pista-barra">
@@ -192,6 +194,13 @@ function renderGraficoNivel(filtrados) {
         </details>`;
     })
     .join('');
+
+  cont.querySelectorAll('details[data-clave]').forEach((det) => {
+    det.addEventListener('toggle', () => {
+      document.getElementById('filtroNivel').value = det.open ? det.dataset.clave : '';
+      renderizarTodo();
+    });
+  });
 }
 
 // ─── Gráfico: sedes por municipio (barra apilada por nivel) ─
@@ -210,8 +219,9 @@ function renderGraficoMunicipio(filtrados) {
 
   const max = Math.max(...filas.map((f) => f.total), 1);
   const claves = [...NIVELES, NIVEL_SIN_CLASIFICAR];
+  const municipioActivo = document.getElementById('filtroMunicipio').value;
 
-  document.getElementById('notaMunicipios').textContent = `${filas.length} municipio${filas.length === 1 ? '' : 's'} con reportes · click en una barra para ver el detalle`;
+  document.getElementById('notaMunicipios').textContent = `${filas.length} municipio${filas.length === 1 ? '' : 's'} con reportes · click en una barra para ver el detalle y filtrar`;
 
   if (filas.length === 0) {
     cont.innerHTML = '<p class="tabla-vacia">Sin datos para los filtros actuales.</p>';
@@ -229,9 +239,10 @@ function renderGraficoMunicipio(filtrados) {
         })
         .join('');
       const anchoTotal = Math.round((f.total / max) * 100);
+      const abierto = municipioActivo === f.mun;
 
       return `
-        <details class="fila-barra-detalle-wrap">
+        <details class="fila-barra-detalle-wrap" data-clave="${escaparHtml(f.mun)}"${abierto ? ' open' : ''}>
           <summary class="fila-barra fila-barra-click">
             <span class="etiqueta-barra">${escaparHtml(f.mun)}</span>
             <div class="pista-barra" style="width:100%;">
@@ -250,6 +261,13 @@ function renderGraficoMunicipio(filtrados) {
         </details>`;
     })
     .join('');
+
+  cont.querySelectorAll('details[data-clave]').forEach((det) => {
+    det.addEventListener('toggle', () => {
+      document.getElementById('filtroMunicipio').value = det.open ? det.dataset.clave : '';
+      renderizarTodo();
+    });
+  });
 
   const leyenda = document.createElement('div');
   leyenda.className = 'leyenda-nivel';
