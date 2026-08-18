@@ -158,32 +158,40 @@ function renderGraficoNivel(filtrados) {
   const claves = [...NIVELES, NIVEL_SIN_CLASIFICAR];
   const conteos = claves.map((c) => filtrados.filter((r) => r.nivelClave === c).length);
   const max = Math.max(...conteos, 1);
-  const nivelActivo = document.getElementById('filtroNivel').value;
 
   cont.innerHTML = claves
     .map((clave, i) => {
       const etiqueta = clave === NIVEL_SIN_CLASIFICAR ? 'Sin clasificar' : clave;
       const n = conteos[i];
       const pct = Math.round((n / max) * 100);
-      const activo = nivelActivo === clave ? ' activo' : '';
+
+      // Desglose SOLO de esta franja de nivel: qué municipios la componen.
+      const porMun = {};
+      filtrados.forEach((r) => {
+        if (r.nivelClave !== clave) return;
+        porMun[r.municipio] = (porMun[r.municipio] || 0) + 1;
+      });
+      const detalle = Object.entries(porMun).sort((a, b) => b[1] - a[1]);
+
       return `
-        <div class="fila-barra fila-barra-click${activo}" data-filtro-nivel="${clave}" title="Ver solo sedes en ${escaparHtml(etiqueta)}">
-          <span class="etiqueta-barra">${escaparHtml(etiqueta)}</span>
-          <div class="pista-barra">
-            <div class="segmento" style="width:${pct}%; background:${claseNivelBg(clave)};"></div>
+        <details class="fila-barra-detalle-wrap">
+          <summary class="fila-barra fila-barra-click">
+            <span class="etiqueta-barra">${escaparHtml(etiqueta)}</span>
+            <div class="pista-barra">
+              <div class="segmento" style="width:${pct}%; background:${claseNivelBg(clave)};"></div>
+            </div>
+            <span class="valor-barra">${n}</span>
+          </summary>
+          <div class="detalle-expandido">
+            ${
+              detalle.length
+                ? detalle.map(([mun, cant]) => `<div class="detalle-expandido-item"><span>${escaparHtml(mun)}</span><span>${cant}</span></div>`).join('')
+                : '<p class="detalle-expandido-vacio">Sin sedes en este nivel.</p>'
+            }
           </div>
-          <span class="valor-barra">${n}</span>
-        </div>`;
+        </details>`;
     })
     .join('');
-
-  cont.querySelectorAll('[data-filtro-nivel]').forEach((fila) => {
-    fila.addEventListener('click', () => {
-      const sel = document.getElementById('filtroNivel');
-      sel.value = sel.value === fila.dataset.filtroNivel ? '' : fila.dataset.filtroNivel;
-      renderizarTodo();
-    });
-  });
 }
 
 // ─── Gráfico: sedes por municipio (barra apilada por nivel) ─
@@ -202,7 +210,6 @@ function renderGraficoMunicipio(filtrados) {
 
   const max = Math.max(...filas.map((f) => f.total), 1);
   const claves = [...NIVELES, NIVEL_SIN_CLASIFICAR];
-  const municipioActivo = document.getElementById('filtroMunicipio').value;
 
   document.getElementById('notaMunicipios').textContent = `${filas.length} municipio${filas.length === 1 ? '' : 's'} con reportes · click en una barra para ver el detalle`;
 
@@ -213,12 +220,8 @@ function renderGraficoMunicipio(filtrados) {
 
   cont.innerHTML = filas
     .map((f) => {
-      const desglose = claves
-        .filter((c) => f.niveles[c])
-        .map((c) => `${c === NIVEL_SIN_CLASIFICAR ? 'Sin clasificar' : c}: ${f.niveles[c]}`)
-        .join(' · ');
-      const segmentos = claves
-        .filter((c) => f.niveles[c])
+      const detalle = claves.filter((c) => f.niveles[c]);
+      const segmentos = detalle
         .map((c) => {
           const pctDelTotal = (f.niveles[c] / f.total) * 100;
           const etiqueta = c === NIVEL_SIN_CLASIFICAR ? 'Sin clasificar' : c;
@@ -226,26 +229,27 @@ function renderGraficoMunicipio(filtrados) {
         })
         .join('');
       const anchoTotal = Math.round((f.total / max) * 100);
-      const activo = municipioActivo === f.mun ? ' activo' : '';
+
       return `
-        <div class="fila-barra fila-barra-click${activo}" data-filtro-municipio="${escaparHtml(f.mun)}" title="${escaparHtml(f.mun)} — ${escaparHtml(desglose)} — click para ver el detalle">
-          <span class="etiqueta-barra">${escaparHtml(f.mun)}</span>
-          <div class="pista-barra" style="width:100%;">
-            <div style="display:flex; width:${anchoTotal}%; height:100%;">${segmentos}</div>
+        <details class="fila-barra-detalle-wrap">
+          <summary class="fila-barra fila-barra-click">
+            <span class="etiqueta-barra">${escaparHtml(f.mun)}</span>
+            <div class="pista-barra" style="width:100%;">
+              <div style="display:flex; width:${anchoTotal}%; height:100%;">${segmentos}</div>
+            </div>
+            <span class="valor-barra">${f.total}</span>
+          </summary>
+          <div class="detalle-expandido">
+            ${detalle
+              .map(
+                (c) =>
+                  `<div class="detalle-expandido-item">${placaNivel(c)}<span>${f.niveles[c]}</span></div>`
+              )
+              .join('')}
           </div>
-          <span class="valor-barra">${f.total}</span>
-        </div>`;
+        </details>`;
     })
     .join('');
-
-  cont.querySelectorAll('[data-filtro-municipio]').forEach((fila) => {
-    fila.addEventListener('click', () => {
-      const sel = document.getElementById('filtroMunicipio');
-      sel.value = sel.value === fila.dataset.filtroMunicipio ? '' : fila.dataset.filtroMunicipio;
-      renderizarTodo();
-      document.getElementById('panelTablaWrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  });
 
   const leyenda = document.createElement('div');
   leyenda.className = 'leyenda-nivel';
