@@ -185,7 +185,7 @@ function renderKpis(filtrados) {
   const conDato = filtrados.filter((r) => r.conectividad !== null);
   const conConectividad = conDato.filter((r) => r.conectividad === true).length;
   document.getElementById('kpiConectividad').textContent = conConectividad;
-  document.getElementById('kpiConectividadSub').textContent = `de ${conDato.length} sede${conDato.length === 1 ? '' : 's'} con dato`;
+  document.getElementById('kpiConectividadSub').textContent = `sedes con conectividad de ${conDato.length}`;
 }
 
 // ─── Gráfico: nivel de afectación ───────────────────────────
