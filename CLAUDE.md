@@ -70,7 +70,19 @@ pero sin fila en `registros`, típicamente envíos que fallaron a mitad de camin
 `listarCarpeta` (solo lectura — archivos y subcarpetas de una carpeta puntual, para verificar a
 mano si una subida llegó a Drive), `listarPestanas` y `leerRango` (solo lectura, diagnóstico
 genérico — listan las pestañas/encabezados o un rango de celdas de cualquier spreadsheet por
-ID, para ubicar un dato nuevo en el Sheet antes de decidir cómo conectarlo).
+ID, para ubicar un dato nuevo en el Sheet antes de decidir cómo conectarlo), `eliminarPestana`
+(genérico, borra una pestaña por nombre) y `completarCamposDerivados` (acepta `dryRun` —
+recalcula Matrícula/DANE/Conectividad para todas las filas ya guardadas, ver más abajo).
+
+**Columnas derivadas de `registros`** (`Matrícula`, `codigo identificacion ie`,
+`espacios afectados /salones/laboratorios/aula maxima. etc`, `Conectividad` — las últimas 4):
+se llenan solas en `guardarSede_` (`camposDerivados_`/`construirMapasDerivados_`), cruzando
+Municipio|Institución|Sede contra dos fuentes externas: el spreadsheet `SIMAT_SHEET_ID`
+("Simat 2025", pestaña "Caldas" — matrícula y código DANE de sede) y la pestaña "Conectividad"
+de este mismo spreadsheet (agregada a mano). `espacios afectados...` queda siempre vacía — sin
+fuente de datos todavía. Hasta 2026-08-20 existía una pestaña "exportar" que duplicaba
+`registros` con estas mismas 4 columnas ya calculadas a mano; se unificaron (backfill vía
+`completarCamposDerivados` + `eliminarPestana`) para que `registros` sea la única fuente.
 
 `RESULTS_SHEET_ID` está hardcodeado en `Code.gs` (el spreadsheet ya existe, no lo crea el
 script). El duplicado se detecta por clave natural `Municipio|Institución|Sede`
@@ -100,7 +112,12 @@ Institución | Sede | DANE Sede | "Si"/"No"), llenada a mano por el usuario — 
 (`claveSedeJs`/`prepararFila` en `js/dashboard.js`), normalizada a minúsculas porque la pestaña
 usa mayúsculas. A propósito **solo cubre las sedes que ya tienen un reporte** — no el catálogo
 completo de 771 sedes — así que el KPI y el gráfico "Conectividad por municipio" se calculan
-sobre `filtrados`, igual que los otros dos gráficos, y respetan los mismos filtros.
+sobre `filtrados`, igual que los otros dos gráficos, y respetan los mismos filtros. En el
+detalle de sede se muestra como un banner grande con ícono (`.detalle-conectividad-banner`,
+`icono-wifi`) separado de las placas chicas de nivel/estado — a propósito más visible, porque
+después de un sismo es un dato operativo (con quién se puede coordinar por internet). En la
+tabla y en el buscador de texto sigue siendo la placa chica (`placaConectividad`) y el código
+DANE (`r.daneSede`) es buscable junto con municipio/institución/sede/padrino.
 
 ## Por qué los videos no pasan por Apps Script
 

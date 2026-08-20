@@ -69,6 +69,12 @@
   <symbol id="icono-cerrar-panel" viewBox="0 0 24 24">
     <path d="M6 6h12M6 12h12M6 18h8"/>
   </symbol>
+  <symbol id="icono-wifi" viewBox="0 0 24 24">
+    <path d="M3.5 9.2a13 13 0 0 1 17 0"/>
+    <path d="M6.5 12.9a8.5 8.5 0 0 1 11 0"/>
+    <path d="M9.6 16.5a4 4 0 0 1 4.8 0"/>
+    <circle cx="12" cy="19.3" r="1" fill="currentColor" stroke="none"/>
+  </symbol>
 </svg>
 
 <div class="panel-shell">
@@ -112,7 +118,7 @@
     <section class="panel-filtros" aria-label="Filtros">
       <div class="campo-busqueda">
         <svg class="icono-svg" aria-hidden="true"><use href="#icono-buscar"/></svg>
-        <input type="search" id="filtroTexto" placeholder="Buscar municipio, institución, sede o padrino…" />
+        <input type="search" id="filtroTexto" placeholder="Buscar municipio, institución, sede, padrino o código DANE…" />
       </div>
       <select id="filtroMunicipio"><option value="">Todos los municipios</option></select>
       <select id="filtroNivel">
@@ -130,6 +136,12 @@
         <option value="Borrador">Borrador</option>
       </select>
       <select id="filtroPadrino"><option value="">Todos los padrinos</option></select>
+      <select id="filtroConectividad">
+        <option value="">Toda la conectividad</option>
+        <option value="si">Con conectividad</option>
+        <option value="no">Sin conectividad</option>
+        <option value="sin_dato">Sin dato</option>
+      </select>
       <button type="button" class="btn-texto" id="btnLimpiarFiltros">Limpiar filtros</button>
     </section>
 
@@ -210,13 +222,13 @@
         <table class="tabla-panel" id="tablaSedes">
           <thead>
             <tr>
-              <th data-orden="timestamp">Fecha <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="municipio">Municipio <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="institucion">Institución <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="sede">Sede <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="padrino">Padrino <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="nivelOrden">Nivel <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="estado">Estado <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
+              <th data-orden="conectividadOrden">Conectividad <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="totalEvidencias">Evidencia <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
             </tr>
           </thead>

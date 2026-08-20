@@ -88,6 +88,7 @@ function prepararFila(r) {
     nivelOrden: nivelValido ? NIVELES.indexOf(r.nivel) : NIVELES.length,
     totalEvidencias: (r.evidencias || []).length,
     conectividad,
+    conectividadOrden: conectividad === true ? 2 : conectividad === false ? 1 : 0,
   };
 }
 
@@ -110,14 +111,16 @@ function obtenerFiltrados() {
   const nivel = document.getElementById('filtroNivel').value;
   const estado = document.getElementById('filtroEstado').value;
   const padrino = document.getElementById('filtroPadrino').value;
+  const conectividad = document.getElementById('filtroConectividad').value;
 
   let lista = registros.filter((r) => {
     if (municipio && r.municipio !== municipio) return false;
     if (nivel && r.nivelClave !== nivel) return false;
     if (estado && r.estado !== estado) return false;
     if (padrino && r.padrino !== padrino) return false;
+    if (conectividad && claveConectividad(r.conectividad) !== conectividad) return false;
     if (texto) {
-      const haystack = `${r.municipio} ${r.institucion} ${r.sede} ${r.padrino}`.toLowerCase();
+      const haystack = `${r.municipio} ${r.institucion} ${r.sede} ${r.padrino} ${r.daneSede || ''}`.toLowerCase();
       if (!haystack.includes(texto)) return false;
     }
     return true;
@@ -439,6 +442,16 @@ function placaConectividad(valor) {
   return `<span class="placa-conectividad" data-conectividad="${clave}">${escaparHtml(etiquetaConectividad(clave))}</span>`;
 }
 
+// Banner grande (no la placa pequeña) — para el panel de detalle de sede,
+// donde la conectividad merece más peso visual que un simple chip.
+function bannerConectividad(valor) {
+  const clave = claveConectividad(valor);
+  return `<div class="detalle-conectividad-banner" data-conectividad="${clave}">
+    ${iconoSvg('icono-wifi')}
+    <span>${escaparHtml(etiquetaConectividad(clave))}</span>
+  </div>`;
+}
+
 function formatearFecha(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -462,13 +475,13 @@ function renderTabla(filtrados) {
     .map(
       (r, i) => `
       <tr data-idx="${i}">
-        <td class="col-fecha">${formatearFecha(r.timestamp)}</td>
         <td>${escaparHtml(r.municipio)}</td>
         <td class="col-institucion">${escaparHtml(r.institucion)}</td>
         <td class="col-sede">${escaparHtml(r.sede)}</td>
         <td>${escaparHtml(r.padrino)}</td>
         <td>${placaNivel(r.nivelClave)}</td>
         <td>${placaEstado(r.estado)}</td>
+        <td>${placaConectividad(r.conectividad)}</td>
         <td><span class="contador-evidencia">${iconoSvg('icono-portapapeles')} ${r.totalEvidencias}</span></td>
       </tr>`
     )
@@ -525,8 +538,9 @@ function abrirDetalle(r) {
 
   cuerpo.innerHTML = `
     <div class="detalle-titulo">${escaparHtml(r.institucion)}</div>
-    <div class="detalle-sub">${escaparHtml(r.sede)} · ${escaparHtml(r.municipio)}</div>
-    <div class="detalle-placas">${placaNivel(r.nivelClave)}${placaEstado(r.estado)}${placaConectividad(r.conectividad)}</div>
+    <div class="detalle-sub">${escaparHtml(r.sede)} · ${escaparHtml(r.municipio)}${r.daneSede ? ` · DANE ${escaparHtml(r.daneSede)}` : ''}</div>
+    <div class="detalle-placas">${placaNivel(r.nivelClave)}${placaEstado(r.estado)}</div>
+    ${bannerConectividad(r.conectividad)}
 
     <div class="detalle-bloque">
       <h3>Contacto</h3>
@@ -623,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     temporizadorResize = setTimeout(igualarAlturaGraficos, 150);
   });
 
-  ['filtroTexto', 'filtroMunicipio', 'filtroNivel', 'filtroEstado', 'filtroPadrino'].forEach((id) => {
+  ['filtroTexto', 'filtroMunicipio', 'filtroNivel', 'filtroEstado', 'filtroPadrino', 'filtroConectividad'].forEach((id) => {
     const el = document.getElementById(id);
     el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', renderizarTodo);
   });
@@ -634,6 +648,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filtroNivel').value = '';
     document.getElementById('filtroEstado').value = '';
     document.getElementById('filtroPadrino').value = '';
+    document.getElementById('filtroConectividad').value = '';
     renderizarTodo();
   });
 

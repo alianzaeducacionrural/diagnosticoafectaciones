@@ -271,6 +271,18 @@
 .placa-conectividad[data-conectividad="no"] { color: var(--danger-ink); background: var(--danger-bg); border-color: var(--danger-border); }
 .placa-conectividad[data-conectividad="sin_dato"] { color: var(--ink-600); background: var(--ink-100); border-color: var(--ink-300); }
 
+/* Banner grande de conectividad en el panel de detalle de sede — más
+   visible que la placa chica de la tabla, con ícono y color de fondo. */
+.detalle-conectividad-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--radio-sm); border: 1.5px solid transparent;
+  font-size: 0.9rem; font-weight: 700; margin-bottom: 18px;
+}
+.detalle-conectividad-banner .icono-svg { width: 20px; height: 20px; flex-shrink: 0; }
+.detalle-conectividad-banner[data-conectividad="si"] { color: var(--safe-ink); background: var(--safe-bg); border-color: var(--safe-border); }
+.detalle-conectividad-banner[data-conectividad="no"] { color: var(--danger-ink); background: var(--danger-bg); border-color: var(--danger-border); }
+.detalle-conectividad-banner[data-conectividad="sin_dato"] { color: var(--ink-600); background: var(--ink-100); border-color: var(--ink-300); }
+
 /* ─── Tabla ─────────────────────────────────────────────────── */
 
 .panel-tabla-wrap { padding: 18px 0 8px; }
@@ -295,7 +307,6 @@
 .tabla-panel tbody tr:not(:last-child) { border-bottom: 1px solid var(--ink-150); }
 .tabla-panel td { padding: 11px 14px; color: var(--ink-700); white-space: nowrap; }
 .tabla-panel td.col-institucion, .tabla-panel td.col-sede { white-space: normal; max-width: 220px; }
-.tabla-panel td.col-fecha { color: var(--ink-600); font-size: 0.78rem; }
 
 .contador-evidencia { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; color: var(--ink-600); font-size: 0.78rem; }
 .contador-evidencia .icono-svg { width: 13px; height: 13px; }

@@ -23,16 +23,29 @@ var DRIVE_ROOT_ID = '1gnAgwNEG_8TB69Jf1BFMyD9O9LGCjzoN';
 // Origen del frontend publicado (GitHub Pages) — ver nota en sesionSubida_.
 var FRONTEND_ORIGIN = 'https://alianzaeducacionrural.github.io';
 
+// Spreadsheet externo "Simat 2025" (matrícula por sede, no lo crea este
+// proyecto) — fuente de Matrícula y del código DANE de sede. Ver
+// leerSimat_ y camposDerivados_.
+var SIMAT_SHEET_ID = '1FzTSL6CjO_WxNhrokDklapRVGlzpyG9XkEZHC3fHltg';
+
 var HEADERS_REGISTROS = [
   'Marca temporal', 'Padrino', 'Correo padrino', 'Teléfono padrino',
   'Municipio', 'Institución',
   'Nombre rector', 'Correo rector', 'Teléfono rector',
   'Sede', 'Nivel de afectación', 'Descripción del daño',
   '# Fotos', '# Videos', '# Documentos', 'Carpeta de la sede', 'Evidencias (JSON)', 'Estado',
+  // Columnas derivadas — se llenan solas en guardarSede_ (camposDerivados_),
+  // cruzando por Municipio|Institución|Sede contra SIMAT_SHEET_ID y la
+  // pestaña "Conectividad". "espacios afectados..." queda vacía a
+  // propósito: sin fuente de datos todavía.
+  'Matrícula', 'codigo identificacion ie', 'espacios afectados /salones/laboratorios/aula maxima. etc', 'Conectividad',
 ];
 
 // Índices 1-based de columnas.
-var COL = { PADRINO: 2, MUNICIPIO: 5, INSTITUCION: 6, SEDE: 10, EVIDENCIAS: 17, ESTADO: 18 };
+var COL = {
+  PADRINO: 2, MUNICIPIO: 5, INSTITUCION: 6, SEDE: 10, EVIDENCIAS: 17, ESTADO: 18,
+  MATRICULA: 19, DANE_SEDE: 20, ESPACIOS_AFECTADOS: 21, CONECTIVIDAD: 22,
+};
 
 // Spreadsheet dedicado de resultados — ya creado a mano dentro de la carpeta
 // de evidencias en Drive (no lo crea el script, para no depender del permiso
@@ -102,6 +115,10 @@ function doPost(e) {
         return jsonResponse(listarPestanas_(datos));
       case 'leerRango':
         return jsonResponse(leerRango_(datos));
+      case 'eliminarPestana':
+        return jsonResponse(eliminarPestana_(datos));
+      case 'completarCamposDerivados':
+        return jsonResponse(completarCamposDerivados_(datos));
       default:
         return errorResponse('Acción no reconocida: ' + accion);
     }
@@ -247,6 +264,7 @@ function misRegistros_(nombrePadrino) {
       numFotos: f[12], numVideos: f[13], numDocumentos: f[14], urlSede: f[15],
       evidencias: evidencias,
       estado: f[COL.ESTADO - 1] || 'Borrador',
+      matricula: f[COL.MATRICULA - 1], daneSede: f[COL.DANE_SEDE - 1],
     });
   });
 
@@ -394,6 +412,60 @@ function carpetaDentroDeRaiz_(carpetaId) {
   }
 }
 
+// ─── Campos derivados (Matrícula, DANE, Conectividad) ────────
+// Se cruzan por la clave natural Municipio|Institución|Sede contra dos
+// fuentes externas: SIMAT_SHEET_ID (matrícula + código DANE de sede) y la
+// pestaña "Conectividad" de este mismo spreadsheet. Un mismo par de mapas
+// se construye una vez por llamada (guardarSede_ o el backfill admin) en
+// vez de releerlos por cada sede.
+
+function leerSimat_() {
+  var ss = SpreadsheetApp.openById(SIMAT_SHEET_ID);
+  var sheet = ss.getSheetByName('Caldas');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var filas = sheet.getRange(2, 1, lastRow - 1, 22).getValues();
+  return filas
+    .filter(function (f) { return String(f[2] || '').trim() !== ''; })
+    .map(function (f) {
+      return {
+        municipio: String(f[0] || '').trim(),
+        institucion: String(f[1] || '').trim(),
+        sede: String(f[2] || '').trim(),
+        matricula: f[15], // columna "TOTAL"
+        daneSede: String(f[21] || '').trim(), // columna "DANE SEDE"
+      };
+    });
+}
+
+function construirMapasDerivados_() {
+  var mapaSimat = {};
+  leerSimat_().forEach(function (r) {
+    mapaSimat[claveSede_(r.municipio, r.institucion, r.sede)] = r;
+  });
+  var mapaConectividad = {};
+  leerConectividad_().forEach(function (r) {
+    mapaConectividad[claveSede_(r.municipio, r.institucion, r.sede)] = r.conectividad;
+  });
+  return { mapaSimat: mapaSimat, mapaConectividad: mapaConectividad };
+}
+
+// Devuelve { matricula, daneSede, conectividad } para una sede puntual.
+// "" cuando no hay match en la fuente correspondiente — nunca se inventa
+// un valor. "espacios afectados..." no se calcula aquí: se deja vacía en
+// guardarSede_ a propósito (sin fuente de datos todavía).
+function camposDerivados_(municipio, institucion, sede, mapas) {
+  var clave = claveSede_(municipio, institucion, sede);
+  var simat = mapas.mapaSimat[clave];
+  var conect = mapas.mapaConectividad[clave];
+  return {
+    matricula: simat ? simat.matricula : '',
+    daneSede: simat ? simat.daneSede : '',
+    conectividad: conect === true ? 'Si' : conect === false ? 'No' : '',
+  };
+}
+
 // ─── POST accion=guardarSede ────────────────────────────────
 // Guarda (o actualiza, si ya era del mismo padrino) una fila de "registros".
 // Todos los campos salvo municipio/institución/sede/padrino son opcionales:
@@ -430,6 +502,7 @@ function guardarSede_(datos) {
     var videos = evidencias.filter(function (ev) { return ev.tipo === 'video'; });
     var documentos = evidencias.filter(function (ev) { return ev.tipo === 'documento'; });
     var estado = evidencias.length > 0 ? 'Completo' : 'Borrador';
+    var derivados = camposDerivados_(municipio, institucion, sede, construirMapasDerivados_());
 
     var fila = [
       new Date(),
@@ -439,6 +512,7 @@ function guardarSede_(datos) {
       sede, nivel, descripcion,
       fotos.length, videos.length, documentos.length,
       urlSede, JSON.stringify(evidencias), estado,
+      derivados.matricula, derivados.daneSede, '', derivados.conectividad,
     ];
 
     if (esPropio) {
@@ -691,6 +765,71 @@ function leerRango_(datos) {
   return { filas: valores, lastRow: lastRow, lastCol: lastCol };
 }
 
+// ─── POST accion=eliminarPestana (uso único) ─────────────────
+// Borra una pestaña puntual de un spreadsheet — para el caso de unificar
+// pestañas duplicadas (p. ej. "exportar" una vez que "registros" ya tiene
+// sus mismas columnas derivadas rellenas). Recuperable desde el historial
+// de versiones del Sheet si hace falta, no es un borrado sin rastro.
+function eliminarPestana_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var spreadsheetId = String((datos && datos.spreadsheetId) || '').trim();
+  var nombrePestana = String((datos && datos.pestana) || '').trim();
+  if (!spreadsheetId || !nombrePestana) throw new Error('Falta spreadsheetId o pestana.');
+
+  var ss = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = ss.getSheetByName(nombrePestana);
+  if (!sheet) throw new Error('No existe la pestaña "' + nombrePestana + '".');
+  ss.deleteSheet(sheet);
+  return { ok: true, eliminada: nombrePestana };
+}
+
+// ─── POST accion=completarCamposDerivados (uso único) ────────
+// Recalcula Matrícula/código DANE/Conectividad (las columnas 19, 20 y 22)
+// para TODAS las filas de "registros" ya guardadas, con la misma lógica
+// que guardarSede_ usa para las nuevas (camposDerivados_). Pensada para
+// unificar "registros" con la pestaña "exportar" (que traía estas mismas
+// columnas ya calculadas a mano): en vez de copiar sus valores, se
+// recalculan frescos aquí para que ambas tablas queden con exactamente la
+// misma lógica de cruce. La columna "espacios afectados..." se deja
+// intacta (sin fuente de datos todavía). Con datos.dryRun=true solo
+// reporta, sin escribir nada.
+function completarCamposDerivados_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var dryRun = !!(datos && datos.dryRun);
+  var resultado = { dryRun: dryRun, filasRevisadas: 0, filasActualizadas: [] };
+
+  var sheet = getSheet_('registros');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return resultado;
+
+  var mapas = construirMapasDerivados_();
+  var filas = sheet.getRange(2, 1, lastRow - 1, HEADERS_REGISTROS.length).getValues();
+  filas.forEach(function (f, i) {
+    resultado.filasRevisadas++;
+    var municipio = f[COL.MUNICIPIO - 1], institucion = f[COL.INSTITUCION - 1], sede = f[COL.SEDE - 1];
+    var derivados = camposDerivados_(municipio, institucion, sede, mapas);
+
+    var anterior = { matricula: f[COL.MATRICULA - 1], daneSede: f[COL.DANE_SEDE - 1], conectividad: f[COL.CONECTIVIDAD - 1] };
+    var cambia = String(anterior.matricula) !== String(derivados.matricula) ||
+      String(anterior.daneSede) !== String(derivados.daneSede) ||
+      String(anterior.conectividad) !== String(derivados.conectividad);
+    if (!cambia) return;
+
+    resultado.filasActualizadas.push({
+      fila: i + 2, municipio: municipio, institucion: institucion, sede: sede,
+      anterior: anterior, nuevo: derivados,
+    });
+
+    if (!dryRun) {
+      sheet.getRange(i + 2, COL.MATRICULA).setValue(derivados.matricula);
+      sheet.getRange(i + 2, COL.DANE_SEDE).setValue(derivados.daneSede);
+      sheet.getRange(i + 2, COL.CONECTIVIDAD).setValue(derivados.conectividad);
+    }
+  });
+
+  return resultado;
+}
+
 // ─── POST accion=repararEvidenciasFaltantes (uso único) ─────
 // Para cada sede en "registros" que quedó en Borrador con CERO evidencias
 // registradas, revisa si su carpeta de Drive en realidad sí tiene archivos
@@ -839,6 +978,7 @@ function todosLosRegistros_() {
       numFotos: f[12], numVideos: f[13], numDocumentos: f[14],
       urlSede: f[15], evidencias: evidencias,
       estado: f[17] || 'Borrador',
+      matricula: f[COL.MATRICULA - 1], daneSede: f[COL.DANE_SEDE - 1],
     };
   });
 }
