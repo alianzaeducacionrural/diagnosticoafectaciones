@@ -51,7 +51,7 @@ del usuario — ver `Plataformas/Seguimiento a egresados/gas/Code.gs` y
 
 | Método | `accion` | Devuelve |
 |---|---|---|
-| GET | `catalogos` | `{ padrinos, geo, asignacion, registradas }` |
+| GET | `catalogos` | `{ padrinos, geo, asignacion, registradas, conectividad }` |
 | GET | `misRegistros&padrino=Nombre` | sedes ya guardadas por ese padrino (Borrador o Completo) |
 | GET | `todosLosRegistros` | TODAS las sedes de TODOS los padrinos — usado por el dashboard |
 | POST | `iniciarSede` | crea/reutiliza la carpeta de la sede; bloquea solo si es de OTRO padrino |
@@ -62,10 +62,15 @@ Acciones de mantenimiento de uso único/ocasional, protegidas con `ADMIN_KEY` (n
 autenticación real, solo evita activarlas por accidente): `resembrarCatalogos`,
 `compartirEvidencias`, `migrarEstructuraCarpetas` (acepta `dryRun`), `limpiarHuerfanos` (acepta
 `dryRun` — compara cada carpeta de sede contra la lista de evidencias del Sheet y manda a la
-papelera lo que no está referenciado), `carpetasSinRegistro` (solo lectura — carpetas con
-archivos pero sin fila en `registros`, típicamente envíos que fallaron a mitad de camino),
+papelera lo que no está referenciado), `repararEvidenciasFaltantes` (acepta `dryRun` — caso
+inverso: sede en "Borrador" con 0 evidencias pero con archivos reales en su carpeta de Drive
+porque el `guardarSede` final nunca se completó; dedupe por tamaño de archivo para no contar
+dos veces un reintento fallido), `carpetasSinRegistro` (solo lectura — carpetas con archivos
+pero sin fila en `registros`, típicamente envíos que fallaron a mitad de camino),
 `listarCarpeta` (solo lectura — archivos y subcarpetas de una carpeta puntual, para verificar a
-mano si una subida llegó a Drive).
+mano si una subida llegó a Drive), `listarPestanas` y `leerRango` (solo lectura, diagnóstico
+genérico — listan las pestañas/encabezados o un rango de celdas de cualquier spreadsheet por
+ID, para ubicar un dato nuevo en el Sheet antes de decidir cómo conectarlo).
 
 `RESULTS_SHEET_ID` está hardcodeado en `Code.gs` (el spreadsheet ya existe, no lo crea el
 script). El duplicado se detecta por clave natural `Municipio|Institución|Sede`
@@ -88,6 +93,14 @@ amarillo-oliva / ámbar / terracota / rojo, escala tipo ATC-20) — mismo compon
 sede y el modal de previsualización de evidencia son una copia deliberada de la lógica de
 `js/form.js`/`renderArchivosExistentes` — dos páginas estáticas sin build, no vale la pena
 extraer un módulo compartido para esto.
+
+**Conectividad**: pestaña "Conectividad" del mismo spreadsheet de resultados (Municipio |
+Institución | Sede | DANE Sede | "Si"/"No"), llenada a mano por el usuario — no la crea
+`inicializar()`. Se cruza contra `registros` por la clave natural Municipio|Institución|Sede
+(`claveSedeJs`/`prepararFila` en `js/dashboard.js`), normalizada a minúsculas porque la pestaña
+usa mayúsculas. A propósito **solo cubre las sedes que ya tienen un reporte** — no el catálogo
+completo de 771 sedes — así que el KPI y el gráfico "Conectividad por municipio" se calculan
+sobre `filtrados`, igual que los otros dos gráficos, y respetan los mismos filtros.
 
 ## Por qué los videos no pasan por Apps Script
 

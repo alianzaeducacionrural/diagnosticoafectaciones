@@ -98,6 +98,10 @@ function doPost(e) {
         return jsonResponse(listarCarpeta_(datos));
       case 'carpetasSinRegistro':
         return jsonResponse(carpetasSinRegistro_(datos));
+      case 'listarPestanas':
+        return jsonResponse(listarPestanas_(datos));
+      case 'leerRango':
+        return jsonResponse(leerRango_(datos));
       default:
         return errorResponse('Acción no reconocida: ' + accion);
     }
@@ -137,7 +141,33 @@ function getCatalogos_() {
     geo: geo,
     asignacion: leerAsignacion_(),
     registradas: leerClavesRegistradas_(),
+    // Sin caché: son ~736 filas (lectura rápida) y no vale la pena
+    // arriesgar el límite de 100 KB por clave de CacheService.
+    conectividad: leerConectividad_(),
   };
+}
+
+// Pestaña "Conectividad" del spreadsheet de resultados (agregada a mano por
+// el usuario, no la crea el script): Municipio | Institución | Sede |
+// DANE Sede | Conectividad ("Si"/"No"). Es dato de catálogo (qué sedes
+// tienen internet), independiente de si hubo o no reporte de daño por
+// sismo — por eso vive junto a "geo" en catalogos y no en "registros".
+function leerConectividad_() {
+  var sheet = getSheet_('Conectividad');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var filas = sheet.getRange(2, 1, lastRow - 1, 5).getValues();
+  return filas
+    .filter(function (f) { return String(f[2] || '').trim() !== ''; })
+    .map(function (f) {
+      return {
+        municipio: String(f[0] || '').trim(),
+        institucion: String(f[1] || '').trim(),
+        sede: String(f[2] || '').trim(),
+        daneSede: String(f[3] || '').trim(),
+        conectividad: /^s/i.test(String(f[4] || '').trim()), // "Si"/"Sí" → true, "No"/vacío → false
+      };
+    });
 }
 
 function construirGeo_() {
@@ -618,6 +648,47 @@ function listarCarpeta_(datos) {
 function idDeUrlDrive_(url) {
   var m = /\/d\/([^/]+)/.exec(url) || /folders\/([^/?]+)/.exec(url);
   return m ? m[1] : '';
+}
+
+// ─── POST accion=listarPestanas (diagnóstico, solo lectura) ─
+// Lista las pestañas de un spreadsheet cualquiera (por ID) con su
+// encabezado y cantidad de filas — para ubicar en qué pestaña/columna vive
+// un dato nuevo antes de decidir cómo conectarlo al backend.
+function listarPestanas_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var spreadsheetId = String((datos && datos.spreadsheetId) || '').trim();
+  if (!spreadsheetId) throw new Error('Falta spreadsheetId.');
+
+  var ss = SpreadsheetApp.openById(spreadsheetId);
+  var pestanas = ss.getSheets().map(function (sheet) {
+    var lastRow = sheet.getLastRow();
+    var lastCol = sheet.getLastColumn();
+    var encabezado = lastRow > 0 && lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+    return { nombre: sheet.getName(), filas: lastRow, columnas: lastCol, encabezado: encabezado };
+  });
+  return { nombreArchivo: ss.getName(), pestanas: pestanas };
+}
+
+// ─── POST accion=leerRango (diagnóstico, solo lectura) ───────
+// Lee un rango de filas de una pestaña puntual de cualquier spreadsheet —
+// para revisar valores reales antes de decidir cómo conectar un dato nuevo.
+function leerRango_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var spreadsheetId = String((datos && datos.spreadsheetId) || '').trim();
+  var nombrePestana = String((datos && datos.pestana) || '').trim();
+  var desde = Number((datos && datos.desde) || 1);
+  var cantidad = Number((datos && datos.cantidad) || 20);
+  if (!spreadsheetId || !nombrePestana) throw new Error('Falta spreadsheetId o pestana.');
+
+  var ss = SpreadsheetApp.openById(spreadsheetId);
+  var sheet = ss.getSheetByName(nombrePestana);
+  if (!sheet) throw new Error('No existe la pestaña "' + nombrePestana + '".');
+  var lastCol = sheet.getLastColumn();
+  var lastRow = sheet.getLastRow();
+  var hasta = Math.min(desde + cantidad - 1, lastRow);
+  if (hasta < desde) return { filas: [] };
+  var valores = sheet.getRange(desde, 1, hasta - desde + 1, lastCol).getValues();
+  return { filas: valores, lastRow: lastRow, lastCol: lastCol };
 }
 
 // ─── POST accion=repararEvidenciasFaltantes (uso único) ─────

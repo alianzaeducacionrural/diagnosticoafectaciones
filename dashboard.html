@@ -163,6 +163,12 @@
         <span class="kpi-numero" id="kpiCriticas">0</span>
         <span class="kpi-sub">requieren atención prioritaria</span>
       </div>
+
+      <div class="tarjeta-panel kpi-tile kpi-conectividad">
+        <span class="kpi-etiqueta">Conectividad</span>
+        <span class="kpi-numero" id="kpiConectividad">0</span>
+        <span class="kpi-sub" id="kpiConectividadSub">de 0 sedes con dato</span>
+      </div>
     </section>
 
     <!-- Gráficos -->
@@ -182,6 +188,16 @@
         </div>
         <div id="graficoMunicipio" class="barras-horizontales barras-municipio"></div>
       </div>
+    </section>
+
+    <!-- Conectividad -->
+    <section class="tarjeta-panel panel-conectividad">
+      <div class="tarjeta-panel-cabeza">
+        <h2>Conectividad por municipio</h2>
+        <span class="tarjeta-panel-nota" id="notaConectividad">Entre las sedes reportadas · click en una barra para filtrar</span>
+      </div>
+      <div id="graficoConectividad" class="barras-horizontales"></div>
+      <div class="leyenda-nivel" id="leyendaConectividad"></div>
     </section>
 
     <!-- Tabla -->

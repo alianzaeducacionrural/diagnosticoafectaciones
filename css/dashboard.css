@@ -131,7 +131,7 @@
 /* ─── KPIs ──────────────────────────────────────────────────── */
 
 .panel-kpis {
-  display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px;
+  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px;
 }
 
 .kpi-etiqueta { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-600); }
@@ -157,6 +157,9 @@
 /* ─── Gráficos: barras horizontales caseras ────────────────── */
 
 .panel-graficos { display: grid; grid-template-columns: 1fr 1.3fr; align-items: start; gap: 14px; margin-bottom: 18px; }
+
+.panel-conectividad { margin-bottom: 18px; }
+.panel-conectividad .barras-horizontales { max-height: 280px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
 
 .barras-horizontales { display: flex; flex-direction: column; gap: 10px; }
 .barras-municipio { max-height: 360px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
@@ -259,6 +262,14 @@
 }
 .placa-estado[data-estado="Completo"] { color: var(--safe-ink); background: var(--safe-bg); }
 .placa-estado[data-estado="Borrador"] { color: var(--caution-ink); background: var(--caution-bg); }
+
+.placa-conectividad {
+  display: inline-flex; align-items: center; padding: 3px 9px; border-radius: var(--radio-pill);
+  font-size: 0.74rem; font-weight: 600; white-space: nowrap; border: 1px solid transparent;
+}
+.placa-conectividad[data-conectividad="si"] { color: var(--safe-ink); background: var(--safe-bg); border-color: var(--safe-border); }
+.placa-conectividad[data-conectividad="no"] { color: var(--danger-ink); background: var(--danger-bg); border-color: var(--danger-border); }
+.placa-conectividad[data-conectividad="sin_dato"] { color: var(--ink-600); background: var(--ink-100); border-color: var(--ink-300); }
 
 /* ─── Tabla ─────────────────────────────────────────────────── */
 

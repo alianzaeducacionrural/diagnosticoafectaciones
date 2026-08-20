@@ -12,6 +12,7 @@ let registros = [];
 let catalogos = null;
 let totalSedesCatalogo = 0;
 let orden = { campo: 'timestamp', dir: 'desc' };
+let mapaConectividad = new Map();
 
 function iconoSvg(id) {
   return `<svg class="icono-svg" aria-hidden="true"><use href="#${id}"></use></svg>`;
@@ -21,6 +22,24 @@ function escaparHtml(s) {
   const d = document.createElement('div');
   d.textContent = String(s == null ? '' : s);
   return d.innerHTML;
+}
+
+// ─── Conectividad ────────────────────────────────────────────
+// La pestaña "Conectividad" del Sheet se llena a mano por municipio/
+// institución/sede en mayúsculas — se cruza por la misma clave natural
+// que usa el backend (normalizada a minúsculas, sin depender del acento
+// o de cómo esté capitalizado en cada lado).
+
+function claveSedeJs(municipio, institucion, sede) {
+  return [municipio, institucion, sede].map((s) => String(s || '').trim().toLowerCase()).join('|');
+}
+
+function construirMapaConectividad(lista) {
+  const mapa = new Map();
+  (lista || []).forEach((c) => {
+    mapa.set(claveSedeJs(c.municipio, c.institucion, c.sede), c.conectividad);
+  });
+  return mapa;
 }
 
 // ─── Carga ───────────────────────────────────────────────────
@@ -38,12 +57,13 @@ async function cargarTodo() {
     if (!resReg.ok) throw new Error(resReg.error);
     if (!resCat.ok) throw new Error(resCat.error);
 
-    registros = resReg.data.map(prepararFila);
     catalogos = resCat.data;
     totalSedesCatalogo = Object.values(catalogos.geo).reduce(
       (acc, ies) => acc + Object.values(ies).reduce((a, sedes) => a + sedes.length, 0),
       0
     );
+    mapaConectividad = construirMapaConectividad(catalogos.conectividad);
+    registros = resReg.data.map(prepararFila);
 
     poblarFiltros();
     renderizarTodo();
@@ -60,11 +80,14 @@ async function cargarTodo() {
 
 function prepararFila(r) {
   const nivelValido = NIVELES.indexOf(r.nivel) !== -1;
+  const clave = claveSedeJs(r.municipio, r.institucion, r.sede);
+  const conectividad = mapaConectividad.has(clave) ? mapaConectividad.get(clave) : null; // null = sin dato
   return {
     ...r,
     nivelClave: nivelValido ? r.nivel : NIVEL_SIN_CLASIFICAR,
     nivelOrden: nivelValido ? NIVELES.indexOf(r.nivel) : NIVELES.length,
     totalEvidencias: (r.evidencias || []).length,
+    conectividad,
   };
 }
 
@@ -117,6 +140,7 @@ function renderizarTodo() {
   renderKpis(filtrados);
   renderGraficoNivel(filtrados);
   renderGraficoMunicipio(filtrados);
+  renderGraficoConectividad(filtrados);
   renderTabla(filtrados);
   requestAnimationFrame(igualarAlturaGraficos);
 }
@@ -154,6 +178,11 @@ function renderKpis(filtrados) {
 
   const criticas = filtrados.filter((r) => r.nivelClave === 'Grave' || r.nivelClave === 'Inhabilitada').length;
   document.getElementById('kpiCriticas').textContent = criticas;
+
+  const conDato = filtrados.filter((r) => r.conectividad !== null);
+  const conConectividad = conDato.filter((r) => r.conectividad === true).length;
+  document.getElementById('kpiConectividad').textContent = conConectividad;
+  document.getElementById('kpiConectividadSub').textContent = `de ${conDato.length} sede${conDato.length === 1 ? '' : 's'} con dato`;
 }
 
 // ─── Gráfico: nivel de afectación ───────────────────────────
@@ -298,6 +327,102 @@ function renderGraficoMunicipio(filtrados) {
   cont.appendChild(leyenda);
 }
 
+// ─── Gráfico: conectividad por municipio (solo sedes reportadas) ─
+// A diferencia de los otros dos gráficos, esto NO viene de "registros"
+// (nivel/estado): se cruza cada sede reportada contra la pestaña
+// "Conectividad" del Sheet por su clave natural (Municipio|Institución|
+// Sede) — ver prepararFila/claveSedeJs. Solo se muestran los municipios
+// que ya tienen algún reporte, nunca el catálogo completo de 771 sedes.
+
+const CONECTIVIDAD_CLAVES = ['si', 'no', 'sin_dato'];
+
+function claseConectividadBg(clave) {
+  const mapa = { si: 'var(--safe-ink)', no: 'var(--danger-ink)', sin_dato: 'var(--ink-400)' };
+  return mapa[clave] || 'var(--ink-400)';
+}
+
+function etiquetaConectividad(clave) {
+  if (clave === 'si') return 'Con conectividad';
+  if (clave === 'no') return 'Sin conectividad';
+  return 'Sin dato';
+}
+
+function claveConectividad(valor) {
+  if (valor === true) return 'si';
+  if (valor === false) return 'no';
+  return 'sin_dato';
+}
+
+function renderGraficoConectividad(filtrados) {
+  const cont = document.getElementById('graficoConectividad');
+  const porMunicipio = {};
+  filtrados.forEach((r) => {
+    const clave = claveConectividad(r.conectividad);
+    if (!porMunicipio[r.municipio]) porMunicipio[r.municipio] = {};
+    porMunicipio[r.municipio][clave] = (porMunicipio[r.municipio][clave] || 0) + 1;
+  });
+
+  const filas = Object.entries(porMunicipio)
+    .map(([mun, datos]) => ({ mun, total: Object.values(datos).reduce((a, b) => a + b, 0), datos }))
+    .sort((a, b) => (b.datos.no || 0) - (a.datos.no || 0) || b.total - a.total);
+
+  const max = Math.max(...filas.map((f) => f.total), 1);
+  const municipioActivo = document.getElementById('filtroMunicipio').value;
+
+  document.getElementById('notaConectividad').textContent = `${filas.length} municipio${filas.length === 1 ? '' : 's'} con reportes · click en una barra para filtrar`;
+
+  if (filas.length === 0) {
+    cont.innerHTML = '<p class="tabla-vacia">Sin datos para los filtros actuales.</p>';
+    document.getElementById('leyendaConectividad').innerHTML = '';
+    return;
+  }
+
+  cont.innerHTML = filas
+    .map((f) => {
+      const detalle = CONECTIVIDAD_CLAVES.filter((c) => f.datos[c]);
+      const segmentos = detalle
+        .map((c) => {
+          const pctDelTotal = (f.datos[c] / f.total) * 100;
+          return `<div class="segmento" data-tip="${etiquetaConectividad(c)}: ${f.datos[c]}" style="width:${pctDelTotal}%; background:${claseConectividadBg(c)};"></div>`;
+        })
+        .join('');
+      const anchoTotal = Math.round((f.total / max) * 100);
+      const abierto = municipioActivo === f.mun;
+
+      return `
+        <div class="fila-barra-detalle-wrap${abierto ? ' abierto' : ''}" data-clave="${escaparHtml(f.mun)}">
+          <div class="fila-barra fila-barra-click" data-role="fila-clicable">
+            <span class="etiqueta-barra">${escaparHtml(f.mun)}</span>
+            <div class="pista-barra" style="width:100%;">
+              <div style="display:flex; width:${anchoTotal}%; height:100%;">${segmentos}</div>
+            </div>
+            <span class="valor-barra">${f.total}</span>
+          </div>
+          <div class="detalle-expandido"${abierto ? '' : ' style="display:none;"'}>
+            ${detalle
+              .map(
+                (c) =>
+                  `<div class="detalle-expandido-item"><span class="leyenda-nivel-punto" style="background:${claseConectividadBg(c)};"></span><span>${etiquetaConectividad(c)}</span><span>${f.datos[c]}</span></div>`
+              )
+              .join('')}
+          </div>
+        </div>`;
+    })
+    .join('');
+
+  cont.querySelectorAll('[data-clave]').forEach((fila) => {
+    fila.querySelector('[data-role="fila-clicable"]').addEventListener('click', () => {
+      const sel = document.getElementById('filtroMunicipio');
+      sel.value = sel.value === fila.dataset.clave ? '' : fila.dataset.clave;
+      renderizarTodo();
+    });
+  });
+
+  document.getElementById('leyendaConectividad').innerHTML = CONECTIVIDAD_CLAVES.map(
+    (c) => `<span class="leyenda-nivel-item"><span class="leyenda-nivel-punto" style="background:${claseConectividadBg(c)};"></span>${etiquetaConectividad(c)}</span>`
+  ).join('');
+}
+
 // ─── Tabla ───────────────────────────────────────────────────
 
 function placaNivel(nivelClave) {
@@ -307,6 +432,11 @@ function placaNivel(nivelClave) {
 
 function placaEstado(estado) {
   return `<span class="placa-estado" data-estado="${estado}">${escaparHtml(estado)}</span>`;
+}
+
+function placaConectividad(valor) {
+  const clave = claveConectividad(valor);
+  return `<span class="placa-conectividad" data-conectividad="${clave}">${escaparHtml(etiquetaConectividad(clave))}</span>`;
 }
 
 function formatearFecha(iso) {
@@ -396,7 +526,7 @@ function abrirDetalle(r) {
   cuerpo.innerHTML = `
     <div class="detalle-titulo">${escaparHtml(r.institucion)}</div>
     <div class="detalle-sub">${escaparHtml(r.sede)} · ${escaparHtml(r.municipio)}</div>
-    <div class="detalle-placas">${placaNivel(r.nivelClave)}${placaEstado(r.estado)}</div>
+    <div class="detalle-placas">${placaNivel(r.nivelClave)}${placaEstado(r.estado)}${placaConectividad(r.conectividad)}</div>
 
     <div class="detalle-bloque">
       <h3>Contacto</h3>
