@@ -367,7 +367,7 @@ function renderGraficoConectividad(filtrados) {
 
   const filas = Object.entries(porMunicipio)
     .map(([mun, datos]) => ({ mun, total: Object.values(datos).reduce((a, b) => a + b, 0), datos }))
-    .sort((a, b) => (b.datos.no || 0) - (a.datos.no || 0) || b.total - a.total);
+    .sort((a, b) => a.mun.localeCompare(b.mun, 'es'));
 
   const max = Math.max(...filas.map((f) => f.total), 1);
   const municipioActivo = document.getElementById('filtroMunicipio').value;
