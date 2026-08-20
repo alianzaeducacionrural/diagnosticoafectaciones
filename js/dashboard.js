@@ -605,13 +605,20 @@ function cerrarPrevia() {
 
 function descargarCsv() {
   const filas = window._filasFiltradasActuales || [];
-  const encabezados = ['Fecha', 'Municipio', 'Institución', 'Sede', 'Padrino', 'Nivel', 'Estado', 'Descripción', '# Evidencias', 'Carpeta Drive'];
+  const encabezados = [
+    'Fecha', 'Municipio', 'Institución', 'Sede', 'Código DANE', 'Matrícula', 'Padrino',
+    'Nivel', 'Estado', 'Conectividad', 'Descripción', '# Evidencias', 'Carpeta Drive',
+  ];
   const csvEscapar = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
 
   const lineas = [encabezados.map(csvEscapar).join(',')];
   filas.forEach((r) => {
     lineas.push(
-      [formatearFecha(r.timestamp), r.municipio, r.institucion, r.sede, r.padrino, r.nivelClave === NIVEL_SIN_CLASIFICAR ? '' : r.nivel, r.estado, r.descripcion, r.totalEvidencias, r.urlSede]
+      [
+        formatearFecha(r.timestamp), r.municipio, r.institucion, r.sede, r.daneSede, r.matricula, r.padrino,
+        r.nivelClave === NIVEL_SIN_CLASIFICAR ? '' : r.nivel, r.estado, etiquetaConectividad(claveConectividad(r.conectividad)),
+        r.descripcion, r.totalEvidencias, r.urlSede,
+      ]
         .map(csvEscapar)
         .join(',')
     );
