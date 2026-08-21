@@ -68,6 +68,7 @@
 .panel-header-marca > .icono-svg { width: 26px; height: 26px; color: var(--clay-600); flex-shrink: 0; }
 .panel-header-titulo { font-family: 'Zilla Slab', serif; font-weight: 600; font-size: 1.15rem; color: var(--ink-900); line-height: 1.2; }
 .panel-header-sub { font-size: 0.78rem; color: var(--ink-600); margin-top: 2px; }
+.panel-header-elaborado { color: var(--ink-700); font-weight: 600; }
 
 .panel-header-acciones { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .panel-actualizado { font-size: 0.75rem; color: var(--ink-600); }
