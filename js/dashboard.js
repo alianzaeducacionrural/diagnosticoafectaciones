@@ -538,7 +538,7 @@ function abrirDetalle(r) {
 
   cuerpo.innerHTML = `
     <div class="detalle-titulo">${escaparHtml(r.institucion)}</div>
-    <div class="detalle-sub">${escaparHtml(r.sede)} · ${escaparHtml(r.municipio)}${r.daneSede ? ` · DANE ${escaparHtml(r.daneSede)}` : ''}</div>
+    <div class="detalle-sub">${escaparHtml(r.sede)} · ${escaparHtml(r.municipio)}${r.daneSede ? ` · DANE ${escaparHtml(r.daneSede)}` : ''}${r.matricula ? ` · Matrícula ${escaparHtml(r.matricula)}` : ''}</div>
     <div class="detalle-placas">${placaNivel(r.nivelClave)}${placaEstado(r.estado)}</div>
     ${bannerConectividad(r.conectividad)}
 
