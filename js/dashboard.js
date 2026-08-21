@@ -183,9 +183,14 @@ function renderKpis(filtrados) {
   document.getElementById('kpiCriticas').textContent = criticas;
 
   const conDato = filtrados.filter((r) => r.conectividad !== null);
-  const conConectividad = conDato.filter((r) => r.conectividad === true).length;
-  document.getElementById('kpiConectividad').textContent = conConectividad;
-  document.getElementById('kpiConectividadSub').textContent = `sedes con conectividad de ${conDato.length}`;
+  const conSi = conDato.filter((r) => r.conectividad === true).length;
+  const conNo = conDato.length - conSi;
+  document.getElementById('kpiConectividadSi').textContent = conSi;
+  document.getElementById('kpiConectividadNo').textContent = conNo;
+  document.getElementById('kpiConectividadSub').textContent = `de ${conDato.length} sede${conDato.length === 1 ? '' : 's'} con dato`;
+  const pctSi = conDato.length ? (conSi / conDato.length) * 100 : 0;
+  document.getElementById('kpiConectividadBarraSi').style.width = `${pctSi}%`;
+  document.getElementById('kpiConectividadBarraNo').style.width = `${100 - pctSi}%`;
 }
 
 // ─── Gráfico: nivel de afectación ───────────────────────────
@@ -478,9 +483,9 @@ function renderTabla(filtrados) {
         <td>${escaparHtml(r.municipio)}</td>
         <td class="col-institucion">${escaparHtml(r.institucion)}</td>
         <td class="col-sede">${escaparHtml(r.sede)}</td>
+        <td class="col-matricula">${r.matricula || r.matricula === 0 ? escaparHtml(r.matricula) : '—'}</td>
         <td>${escaparHtml(r.padrino)}</td>
         <td>${placaNivel(r.nivelClave)}</td>
-        <td>${placaEstado(r.estado)}</td>
         <td>${placaConectividad(r.conectividad)}</td>
         <td><span class="contador-evidencia">${iconoSvg('icono-portapapeles')} ${r.totalEvidencias}</span></td>
       </tr>`
@@ -538,9 +543,10 @@ function abrirDetalle(r) {
 
   cuerpo.innerHTML = `
     <div class="detalle-titulo">${escaparHtml(r.institucion)}</div>
-    <div class="detalle-sub">${escaparHtml(r.sede)} · ${escaparHtml(r.municipio)}${r.daneSede ? ` · DANE ${escaparHtml(r.daneSede)}` : ''}${r.matricula ? ` · Matrícula ${escaparHtml(r.matricula)}` : ''}</div>
+    <div class="detalle-sub">${escaparHtml(r.sede)} · ${escaparHtml(r.municipio)}${r.daneSede ? ` · DANE ${escaparHtml(r.daneSede)}` : ''}</div>
     <div class="detalle-placas">${placaNivel(r.nivelClave)}${placaEstado(r.estado)}</div>
     ${bannerConectividad(r.conectividad)}
+    ${r.matricula ? `<div class="detalle-matricula-stat">${iconoSvg('icono-personas')} <strong>${escaparHtml(r.matricula)}</strong> estudiantes matriculados</div>` : ''}
 
     <div class="detalle-bloque">
       <h3>Contacto</h3>

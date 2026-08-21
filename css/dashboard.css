@@ -154,6 +154,21 @@
 .kpi-critico .kpi-numero { color: var(--nivel-grave-ink); }
 .kpi-critico .kpi-etiqueta, .kpi-critico .kpi-sub { color: var(--nivel-grave-ink); opacity: 0.85; }
 
+/* KPI de conectividad: dos cifras (con/sin conexión) en el mismo tile en
+   vez de un solo número grande, con una franja de dos colores debajo que
+   resume la proporción de un vistazo. */
+.kpi-conectividad-stats { display: flex; align-items: center; gap: 12px; margin: 2px 0 8px; }
+.kpi-conectividad-stat { display: flex; flex-direction: column; gap: 1px; }
+.kpi-conectividad-numero { font-family: 'Zilla Slab', serif; font-size: 1.5rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi-conectividad-label { font-size: 0.68rem; color: var(--ink-600); font-weight: 500; }
+.kpi-conectividad-si .kpi-conectividad-numero { color: var(--safe-ink); }
+.kpi-conectividad-no .kpi-conectividad-numero { color: var(--danger-ink); }
+.kpi-conectividad-divisor { width: 1px; align-self: stretch; background: var(--ink-200, var(--ink-300)); }
+
+.kpi-conectividad-barra { display: flex; height: 7px; border-radius: var(--radio-pill); overflow: hidden; background: var(--ink-150); }
+.kpi-conectividad-barra-si { background: var(--safe-ink); height: 100%; transition: width var(--t-fast); }
+.kpi-conectividad-barra-no { background: var(--danger-ink); height: 100%; transition: width var(--t-fast); }
+
 /* ─── Gráficos: barras horizontales caseras ────────────────── */
 
 .panel-graficos { display: grid; grid-template-columns: 1fr 1.3fr; align-items: start; gap: 14px; margin-bottom: 18px; }
@@ -283,6 +298,17 @@
 .detalle-conectividad-banner[data-conectividad="no"] { color: var(--danger-ink); background: var(--danger-bg); border-color: var(--danger-border); }
 .detalle-conectividad-banner[data-conectividad="sin_dato"] { color: var(--ink-600); background: var(--ink-100); border-color: var(--ink-300); }
 
+/* Estadística de matrícula en el detalle de sede — igual de visible que
+   el banner de conectividad, entre las placas y el bloque de contacto. */
+.detalle-matricula-stat {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: var(--radio-sm); border: 1.5px solid var(--clay-300);
+  background: var(--clay-50); color: var(--clay-700);
+  font-size: 0.9rem; font-weight: 600; margin-bottom: 18px;
+}
+.detalle-matricula-stat .icono-svg { width: 22px; height: 22px; flex-shrink: 0; }
+.detalle-matricula-stat strong { font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+
 /* ─── Tabla ─────────────────────────────────────────────────── */
 
 .panel-tabla-wrap { padding: 18px 0 8px; }
@@ -307,6 +333,8 @@
 .tabla-panel tbody tr:not(:last-child) { border-bottom: 1px solid var(--ink-150); }
 .tabla-panel td { padding: 11px 14px; color: var(--ink-700); white-space: nowrap; }
 .tabla-panel td.col-institucion, .tabla-panel td.col-sede { white-space: normal; max-width: 220px; }
+.tabla-panel td.col-matricula { font-variant-numeric: tabular-nums; text-align: right; }
+.tabla-panel th[data-orden="matricula"] { text-align: right; }
 
 .contador-evidencia { display: inline-flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; color: var(--ink-600); font-size: 0.78rem; }
 .contador-evidencia .icono-svg { width: 13px; height: 13px; }

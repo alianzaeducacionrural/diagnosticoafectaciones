@@ -69,6 +69,12 @@
   <symbol id="icono-cerrar-panel" viewBox="0 0 24 24">
     <path d="M6 6h12M6 12h12M6 18h8"/>
   </symbol>
+  <symbol id="icono-personas" viewBox="0 0 24 24">
+    <circle cx="9" cy="8" r="3"/>
+    <path d="M3.5 19.5a5.5 5.5 0 0 1 11 0"/>
+    <circle cx="17" cy="9" r="2.4"/>
+    <path d="M15.3 13.1a4.3 4.3 0 0 1 5.2 4.2"/>
+  </symbol>
   <symbol id="icono-wifi" viewBox="0 0 24 24">
     <path d="M3.5 9.2a13 13 0 0 1 17 0"/>
     <path d="M6.5 12.9a8.5 8.5 0 0 1 11 0"/>
@@ -178,8 +184,22 @@
 
       <div class="tarjeta-panel kpi-tile kpi-conectividad">
         <span class="kpi-etiqueta">Conectividad</span>
-        <span class="kpi-numero" id="kpiConectividad">0</span>
-        <span class="kpi-sub" id="kpiConectividadSub">sedes con conectividad de 0</span>
+        <div class="kpi-conectividad-stats">
+          <div class="kpi-conectividad-stat kpi-conectividad-si">
+            <span class="kpi-conectividad-numero" id="kpiConectividadSi">0</span>
+            <span class="kpi-conectividad-label">Con conexión</span>
+          </div>
+          <div class="kpi-conectividad-divisor"></div>
+          <div class="kpi-conectividad-stat kpi-conectividad-no">
+            <span class="kpi-conectividad-numero" id="kpiConectividadNo">0</span>
+            <span class="kpi-conectividad-label">Sin conexión</span>
+          </div>
+        </div>
+        <div class="kpi-conectividad-barra">
+          <div class="kpi-conectividad-barra-si" id="kpiConectividadBarraSi"></div>
+          <div class="kpi-conectividad-barra-no" id="kpiConectividadBarraNo"></div>
+        </div>
+        <span class="kpi-sub" id="kpiConectividadSub">de 0 sedes con dato</span>
       </div>
     </section>
 
@@ -225,9 +245,9 @@
               <th data-orden="municipio">Municipio <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="institucion">Institución <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="sede">Sede <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
+              <th data-orden="matricula">Matrícula <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="padrino">Padrino <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="nivelOrden">Nivel <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
-              <th data-orden="estado">Estado <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="conectividadOrden">Conectividad <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="totalEvidencias">Evidencia <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
             </tr>
