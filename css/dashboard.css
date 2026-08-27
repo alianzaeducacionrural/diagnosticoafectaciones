@@ -151,7 +151,7 @@
 /* ─── KPIs ──────────────────────────────────────────────────── */
 
 .panel-kpis {
-  display: grid; grid-template-columns: 1fr 0.75fr 1.05fr 1.9fr; gap: 14px; margin-bottom: 18px;
+  display: grid; grid-template-columns: 1.05fr 0.72fr 0.95fr 1.9fr; gap: 14px; margin-bottom: 18px;
 }
 
 /* Los 4 tiles quedan más bajos que el resto de tarjetas del panel (menos
@@ -179,7 +179,7 @@
 .kpi-cobertura-pie span { font-weight: 700; color: var(--clay-700); }
 
 .kpi-tile { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
-.kpi-numero { font-family: 'Zilla Slab', serif; font-size: 2rem; font-weight: 700; color: var(--ink-900); line-height: 1.1; }
+.kpi-numero { font-family: 'Zilla Slab', serif; font-size: 2.3rem; font-weight: 700; color: var(--ink-900); line-height: 1.1; }
 .kpi-sub { font-size: 0.76rem; color: var(--ink-600); }
 .kpi-critico { border-color: var(--nivel-grave-bd); background: var(--nivel-grave-bg); }
 .kpi-critico .kpi-numero { color: var(--nivel-grave-ink); }
