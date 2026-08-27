@@ -129,14 +129,12 @@ function obtenerFiltrados() {
   const texto = document.getElementById('filtroTexto').value.trim().toLowerCase();
   const municipio = document.getElementById('filtroMunicipio').value;
   const nivel = document.getElementById('filtroNivel').value;
-  const estado = document.getElementById('filtroEstado').value;
   const padrino = document.getElementById('filtroPadrino').value;
   const conectividad = document.getElementById('filtroConectividad').value;
 
   let lista = registros.filter((r) => {
     if (municipio && r.municipio !== municipio) return false;
     if (nivel && r.nivelClave !== nivel) return false;
-    if (estado && r.estado !== estado) return false;
     if (padrino && r.padrino !== padrino) return false;
     if (conectividad && claveConectividad(r.conectividad) !== conectividad) return false;
     if (texto) {
@@ -191,10 +189,6 @@ function renderKpis(filtrados) {
   document.getElementById('kpiCoberturaTexto').textContent = `${reportadas} / ${totalSedesCatalogo} sedes`;
   document.getElementById('kpiCoberturaRelleno').style.width = `${Math.min(porcentaje, 100)}%`;
   document.getElementById('kpiCoberturaPorcentaje').textContent = `${porcentaje}%`;
-
-  const completas = filtrados.filter((r) => r.estado === 'Completo').length;
-  document.getElementById('kpiCompletas').textContent = completas;
-  document.getElementById('kpiCompletasSub').textContent = `de ${filtrados.length} reportadas`;
 
   const totalEv = filtrados.reduce((acc, r) => acc + r.totalEvidencias, 0);
   document.getElementById('kpiEvidencias').textContent = totalEv;
@@ -701,7 +695,7 @@ document.addEventListener('DOMContentLoaded', () => {
     temporizadorResize = setTimeout(igualarAlturaGraficos, 150);
   });
 
-  ['filtroTexto', 'filtroMunicipio', 'filtroNivel', 'filtroEstado', 'filtroPadrino', 'filtroConectividad'].forEach((id) => {
+  ['filtroTexto', 'filtroMunicipio', 'filtroNivel', 'filtroPadrino', 'filtroConectividad'].forEach((id) => {
     const el = document.getElementById(id);
     el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', renderizarTodo);
   });
@@ -710,7 +704,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filtroTexto').value = '';
     document.getElementById('filtroMunicipio').value = '';
     document.getElementById('filtroNivel').value = '';
-    document.getElementById('filtroEstado').value = '';
     document.getElementById('filtroPadrino').value = '';
     document.getElementById('filtroConectividad').value = '';
     renderizarTodo();

@@ -137,11 +137,6 @@
         <option value="Inhabilitada">Inhabilitada</option>
         <option value="__sin_nivel__">Sin clasificar</option>
       </select>
-      <select id="filtroEstado">
-        <option value="">Todos los estados</option>
-        <option value="Completo">Completo</option>
-        <option value="Borrador">Borrador</option>
-      </select>
       <select id="filtroPadrino"><option value="">Todos los padrinos</option></select>
       <select id="filtroConectividad">
         <option value="">Toda la conectividad</option>
@@ -163,12 +158,6 @@
         <div class="kpi-cobertura-pie">
           <span id="kpiCoberturaPorcentaje">0%</span> del total de sedes del departamento tiene un reporte
         </div>
-      </div>
-
-      <div class="tarjeta-panel kpi-tile">
-        <span class="kpi-etiqueta">Sedes completas</span>
-        <span class="kpi-numero" id="kpiCompletas">0</span>
-        <span class="kpi-sub" id="kpiCompletasSub">de 0 reportadas</span>
       </div>
 
       <div class="tarjeta-panel kpi-tile">
@@ -204,19 +193,21 @@
       </div>
 
       <div class="tarjeta-panel kpi-tile kpi-matricula-nivel">
-        <span class="kpi-etiqueta">Matrícula por nivel</span>
+        <span class="kpi-etiqueta">Matrícula por nivel educativo</span>
         <div class="kpi-matricula-nivel-stats">
           <div class="kpi-matricula-nivel-stat kpi-mn-primaria">
             <span class="kpi-matricula-nivel-numero" id="kpiMnPrimaria">0</span>
-            <span class="kpi-matricula-nivel-label">Primaria</span>
+            <span class="kpi-matricula-nivel-label"><span class="kpi-mn-punto"></span>Primaria</span>
           </div>
+          <div class="kpi-matricula-nivel-divisor"></div>
           <div class="kpi-matricula-nivel-stat kpi-mn-posprimaria">
             <span class="kpi-matricula-nivel-numero" id="kpiMnPosprimaria">0</span>
-            <span class="kpi-matricula-nivel-label">Posprimaria</span>
+            <span class="kpi-matricula-nivel-label"><span class="kpi-mn-punto"></span>Posprimaria</span>
           </div>
+          <div class="kpi-matricula-nivel-divisor"></div>
           <div class="kpi-matricula-nivel-stat kpi-mn-media">
             <span class="kpi-matricula-nivel-numero" id="kpiMnMedia">0</span>
-            <span class="kpi-matricula-nivel-label">Media</span>
+            <span class="kpi-matricula-nivel-label"><span class="kpi-mn-punto"></span>Media</span>
           </div>
         </div>
         <div class="kpi-matricula-nivel-barra">
