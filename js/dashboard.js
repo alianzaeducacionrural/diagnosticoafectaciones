@@ -190,9 +190,6 @@ function renderKpis(filtrados) {
   document.getElementById('kpiCoberturaRelleno').style.width = `${Math.min(porcentaje, 100)}%`;
   document.getElementById('kpiCoberturaPorcentaje').textContent = `${porcentaje}%`;
 
-  const totalEv = filtrados.reduce((acc, r) => acc + r.totalEvidencias, 0);
-  document.getElementById('kpiEvidencias').textContent = totalEv;
-
   const criticas = filtrados.filter((r) => r.nivelClave === 'Grave' || r.nivelClave === 'Inhabilitada').length;
   document.getElementById('kpiCriticas').textContent = criticas;
 
@@ -211,9 +208,10 @@ function renderKpis(filtrados) {
   const sumPosprimaria = conSimat.reduce((acc, r) => acc + (r.posprimaria || 0), 0);
   const sumMedia = conSimat.reduce((acc, r) => acc + (r.media || 0), 0);
   const totalMn = sumPrimaria + sumPosprimaria + sumMedia;
-  document.getElementById('kpiMnPrimaria').textContent = sumPrimaria;
-  document.getElementById('kpiMnPosprimaria').textContent = sumPosprimaria;
-  document.getElementById('kpiMnMedia').textContent = sumMedia;
+  document.getElementById('kpiMnTotal').textContent = totalMn.toLocaleString('es-CO');
+  document.getElementById('kpiMnPrimaria').textContent = sumPrimaria.toLocaleString('es-CO');
+  document.getElementById('kpiMnPosprimaria').textContent = sumPosprimaria.toLocaleString('es-CO');
+  document.getElementById('kpiMnMedia').textContent = sumMedia.toLocaleString('es-CO');
   document.getElementById('kpiMnSub').textContent = `de ${conSimat.length} sede${conSimat.length === 1 ? '' : 's'} con dato`;
   document.getElementById('kpiMnBarraPrimaria').style.width = `${totalMn ? (sumPrimaria / totalMn) * 100 : 0}%`;
   document.getElementById('kpiMnBarraPosprimaria').style.width = `${totalMn ? (sumPosprimaria / totalMn) * 100 : 0}%`;

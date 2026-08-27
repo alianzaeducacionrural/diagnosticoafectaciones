@@ -46,9 +46,15 @@
 
   /* Matrícula por nivel educativo — no es severidad, es una categoría
      aparte, así que evita reusar safe/caution/danger (confundiría). Clay
-     ya identifica "matrícula" en el stat grande del detalle; se suma
-     info (ya en styles.css) y un violeta nuevo, solo para Media. */
-  --edu-primaria:     var(--clay-600);
+     ya identifica "matrícula" en el stat grande del detalle, así que
+     Primaria no puede ser clay también (se confundía con ese banner) —
+     usa un rosa/magenta propio, validado por ΔE contra el resto de la
+     paleta (skill dataviz). Posprimaria reusa info y Media un violeta
+     nuevo (ya en styles.css). */
+  --edu-primaria-ink: #8E2C55;
+  --edu-primaria:     #B24A73;
+  --edu-primaria-bg:  #FCE3EC;
+  --edu-primaria-bd:  #EFAFC7;
   --edu-posprimaria:  var(--info-ink);
   --edu-posprimaria-bg: var(--info-bg);
   --edu-posprimaria-bd: var(--info-border);
@@ -145,7 +151,7 @@
 /* ─── KPIs ──────────────────────────────────────────────────── */
 
 .panel-kpis {
-  display: grid; grid-template-columns: 1.1fr 0.7fr 0.7fr 1fr 1.5fr; gap: 14px; margin-bottom: 18px;
+  display: grid; grid-template-columns: 1fr 0.75fr 1.05fr 1.9fr; gap: 14px; margin-bottom: 18px;
 }
 
 .kpi-etiqueta { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-600); }
@@ -187,25 +193,33 @@
 .kpi-conectividad-barra-no { background: var(--danger-ink); height: 100%; transition: width var(--t-fast); }
 
 /* KPI de matrícula por nivel educativo — la tarjeta más ancha del grupo
-   (necesita 3 cifras), con divisores entre cada una como en Conectividad
-   y un punto de color por etiqueta para que la cifra grande y la
-   etiqueta chica se lean como un mismo bloque de un vistazo. */
-.kpi-matricula-nivel { gap: 6px; }
-.kpi-matricula-nivel-stats { display: flex; align-items: center; gap: 16px; margin: 4px 0 10px; }
+   (ganó el espacio que dejó "Evidencias subidas" al quitarse). Cabecera
+   con el total general a la derecha de la etiqueta, igual de prominente
+   que kpi-cobertura-valor; debajo, 3 cifras con divisores como en
+   Conectividad y un punto de color por etiqueta para que la cifra grande
+   y la etiqueta chica se lean como un mismo bloque de un vistazo. */
+.kpi-matricula-nivel { gap: 8px; }
+.kpi-matricula-nivel-cabeza { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.kpi-matricula-nivel-total { font-size: 0.82rem; color: var(--ink-600); font-weight: 500; white-space: nowrap; }
+.kpi-matricula-nivel-total strong {
+  font-family: 'Zilla Slab', serif; font-size: 1.4rem; font-weight: 700;
+  color: var(--ink-900); font-variant-numeric: tabular-nums; margin-right: 3px;
+}
+.kpi-matricula-nivel-stats { display: flex; align-items: center; gap: 22px; margin: 6px 0 12px; }
 .kpi-matricula-nivel-stat { display: flex; flex-direction: column; gap: 3px; }
-.kpi-matricula-nivel-numero { font-family: 'Zilla Slab', serif; font-size: 1.7rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-.kpi-matricula-nivel-label { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--ink-600); font-weight: 500; white-space: nowrap; }
-.kpi-mn-punto { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.kpi-matricula-nivel-numero { font-family: 'Zilla Slab', serif; font-size: 1.9rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.kpi-matricula-nivel-label { display: inline-flex; align-items: center; gap: 5px; font-size: 0.74rem; color: var(--ink-600); font-weight: 500; white-space: nowrap; }
+.kpi-mn-punto { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .kpi-matricula-nivel-divisor { width: 1px; align-self: stretch; background: var(--ink-200, var(--ink-300)); }
 
-.kpi-mn-primaria .kpi-matricula-nivel-numero { color: var(--edu-primaria); }
+.kpi-mn-primaria .kpi-matricula-nivel-numero { color: var(--edu-primaria-ink); }
 .kpi-mn-posprimaria .kpi-matricula-nivel-numero { color: var(--edu-posprimaria); }
 .kpi-mn-media .kpi-matricula-nivel-numero { color: var(--edu-media-ink); }
 .kpi-mn-primaria .kpi-mn-punto { background: var(--edu-primaria); }
 .kpi-mn-posprimaria .kpi-mn-punto { background: var(--edu-posprimaria); }
 .kpi-mn-media .kpi-mn-punto { background: var(--edu-media); }
 
-.kpi-matricula-nivel-barra { display: flex; height: 9px; border-radius: var(--radio-pill); overflow: hidden; background: var(--ink-150); gap: 1.5px; }
+.kpi-matricula-nivel-barra { display: flex; height: 10px; border-radius: var(--radio-pill); overflow: hidden; background: var(--ink-150); gap: 1.5px; }
 .kpi-mn-barra-primaria { background: var(--edu-primaria); height: 100%; transition: width var(--t-fast); }
 .kpi-mn-barra-posprimaria { background: var(--edu-posprimaria); height: 100%; transition: width var(--t-fast); }
 .kpi-mn-barra-media { background: var(--edu-media); height: 100%; transition: width var(--t-fast); }
@@ -219,7 +233,7 @@
   font-size: 0.76rem; font-weight: 500;
 }
 .detalle-matricula-chip strong { font-variant-numeric: tabular-nums; font-weight: 700; }
-.detalle-matricula-chip[data-nivel-edu="primaria"] { color: var(--edu-primaria); background: var(--clay-50); border-color: var(--clay-300); }
+.detalle-matricula-chip[data-nivel-edu="primaria"] { color: var(--edu-primaria-ink); background: var(--edu-primaria-bg); border-color: var(--edu-primaria-bd); }
 .detalle-matricula-chip[data-nivel-edu="posprimaria"] { color: var(--edu-posprimaria); background: var(--edu-posprimaria-bg); border-color: var(--edu-posprimaria-bd); }
 .detalle-matricula-chip[data-nivel-edu="media"] { color: var(--edu-media-ink); background: var(--edu-media-bg); border-color: var(--edu-media-bd); }
 
@@ -458,7 +472,7 @@
   .panel-header { margin: 0 -12px 14px; flex-wrap: wrap; }
   .panel-filtros { top: 116px; }
   .panel-kpis { grid-template-columns: 1fr 1fr; }
-  .kpi-cobertura { grid-column: 1 / -1; }
+  .kpi-cobertura, .kpi-matricula-nivel { grid-column: 1 / -1; }
   .fila-barra { grid-template-columns: 92px 1fr 32px; }
   .panel-detalle-caja { width: 100%; }
 }
