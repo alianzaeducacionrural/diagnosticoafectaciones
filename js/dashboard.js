@@ -13,6 +13,7 @@ let catalogos = null;
 let totalSedesCatalogo = 0;
 let orden = { campo: 'timestamp', dir: 'desc' };
 let mapaConectividad = new Map();
+let mapaSimat = new Map();
 
 function iconoSvg(id) {
   return `<svg class="icono-svg" aria-hidden="true"><use href="#${id}"></use></svg>`;
@@ -42,6 +43,20 @@ function construirMapaConectividad(lista) {
   return mapa;
 }
 
+// ─── Matrícula por nivel educativo ───────────────────────────
+// "Simat 2025" (misma fuente que ya usa el backend para la Matrícula
+// total de cada fila) trae el desglose Primaria/Posprimaria/Media por
+// sede. A diferencia de Matrícula/DANE/Conectividad (que quedan
+// guardados en la fila al momento del envío), este desglose se consulta
+// en vivo desde catalogos.simat — no se persiste en "registros".
+function construirMapaSimat(lista) {
+  const mapa = new Map();
+  (lista || []).forEach((s) => {
+    mapa.set(claveSedeJs(s.municipio, s.institucion, s.sede), { primaria: s.primaria || 0, posprimaria: s.posprimaria || 0, media: s.media || 0 });
+  });
+  return mapa;
+}
+
 // ─── Carga ───────────────────────────────────────────────────
 
 async function cargarTodo() {
@@ -63,6 +78,7 @@ async function cargarTodo() {
       0
     );
     mapaConectividad = construirMapaConectividad(catalogos.conectividad);
+    mapaSimat = construirMapaSimat(catalogos.simat);
     registros = resReg.data.map(prepararFila);
 
     poblarFiltros();
@@ -82,6 +98,7 @@ function prepararFila(r) {
   const nivelValido = NIVELES.indexOf(r.nivel) !== -1;
   const clave = claveSedeJs(r.municipio, r.institucion, r.sede);
   const conectividad = mapaConectividad.has(clave) ? mapaConectividad.get(clave) : null; // null = sin dato
+  const simat = mapaSimat.get(clave) || null;
   return {
     ...r,
     nivelClave: nivelValido ? r.nivel : NIVEL_SIN_CLASIFICAR,
@@ -89,6 +106,9 @@ function prepararFila(r) {
     totalEvidencias: (r.evidencias || []).length,
     conectividad,
     conectividadOrden: conectividad === true ? 2 : conectividad === false ? 1 : 0,
+    primaria: simat ? simat.primaria : null,
+    posprimaria: simat ? simat.posprimaria : null,
+    media: simat ? simat.media : null,
   };
 }
 
@@ -191,6 +211,19 @@ function renderKpis(filtrados) {
   const pctSi = conDato.length ? (conSi / conDato.length) * 100 : 0;
   document.getElementById('kpiConectividadBarraSi').style.width = `${pctSi}%`;
   document.getElementById('kpiConectividadBarraNo').style.width = `${100 - pctSi}%`;
+
+  const conSimat = filtrados.filter((r) => r.primaria !== null);
+  const sumPrimaria = conSimat.reduce((acc, r) => acc + (r.primaria || 0), 0);
+  const sumPosprimaria = conSimat.reduce((acc, r) => acc + (r.posprimaria || 0), 0);
+  const sumMedia = conSimat.reduce((acc, r) => acc + (r.media || 0), 0);
+  const totalMn = sumPrimaria + sumPosprimaria + sumMedia;
+  document.getElementById('kpiMnPrimaria').textContent = sumPrimaria;
+  document.getElementById('kpiMnPosprimaria').textContent = sumPosprimaria;
+  document.getElementById('kpiMnMedia').textContent = sumMedia;
+  document.getElementById('kpiMnSub').textContent = `de ${conSimat.length} sede${conSimat.length === 1 ? '' : 's'} con dato`;
+  document.getElementById('kpiMnBarraPrimaria').style.width = `${totalMn ? (sumPrimaria / totalMn) * 100 : 0}%`;
+  document.getElementById('kpiMnBarraPosprimaria').style.width = `${totalMn ? (sumPosprimaria / totalMn) * 100 : 0}%`;
+  document.getElementById('kpiMnBarraMedia').style.width = `${totalMn ? (sumMedia / totalMn) * 100 : 0}%`;
 }
 
 // ─── Gráfico: nivel de afectación ───────────────────────────
@@ -457,6 +490,23 @@ function bannerConectividad(valor) {
   </div>`;
 }
 
+// Chips de Primaria/Posprimaria/Media debajo del stat de matrícula total,
+// en el detalle de sede. Solo se muestra si hay dato de Simat para esa
+// sede (r.primaria !== null) y si al menos uno de los 3 niveles tiene
+// estudiantes — evita chips en 0 para sedes sin ese nivel.
+function desgloseMatriculaHtml(r) {
+  if (r.primaria === null) return '';
+  const niveles = [
+    { clave: 'primaria', etiqueta: 'Primaria', valor: r.primaria },
+    { clave: 'posprimaria', etiqueta: 'Posprimaria', valor: r.posprimaria },
+    { clave: 'media', etiqueta: 'Media', valor: r.media },
+  ].filter((n) => n.valor > 0);
+  if (!niveles.length) return '';
+  return `<div class="detalle-matricula-desglose">${niveles
+    .map((n) => `<span class="detalle-matricula-chip" data-nivel-edu="${n.clave}"><strong>${n.valor}</strong> ${n.etiqueta}</span>`)
+    .join('')}</div>`;
+}
+
 function formatearFecha(iso) {
   if (!iso) return '—';
   const d = new Date(iso);
@@ -547,6 +597,7 @@ function abrirDetalle(r) {
     <div class="detalle-placas">${placaNivel(r.nivelClave)}${placaEstado(r.estado)}</div>
     ${bannerConectividad(r.conectividad)}
     ${r.matricula ? `<div class="detalle-matricula-stat">${iconoSvg('icono-personas')} <strong>${escaparHtml(r.matricula)}</strong> estudiantes matriculados</div>` : ''}
+    ${desgloseMatriculaHtml(r)}
 
     <div class="detalle-bloque">
       <h3>Contacto</h3>

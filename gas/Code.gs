@@ -162,9 +162,10 @@ function getCatalogos_() {
     geo: geo,
     asignacion: leerAsignacion_(),
     registradas: leerClavesRegistradas_(),
-    // Sin caché: son ~736 filas (lectura rápida) y no vale la pena
+    // Sin caché: son ~736/~760 filas (lectura rápida) y no vale la pena
     // arriesgar el límite de 100 KB por clave de CacheService.
     conectividad: leerConectividad_(),
+    simat: leerSimat_(),
   };
 }
 
@@ -438,6 +439,9 @@ function leerSimat_() {
         institucion: String(f[1] || '').trim(),
         sede: String(f[2] || '').trim(),
         matricula: f[15], // columna "TOTAL"
+        primaria: f[16], // columna "PRIMARÍA" (suma de grados 0 a 5)
+        posprimaria: f[17], // columna sin encabezado (suma de grados 6 a 9)
+        media: f[18], // columna "MEDIA" (suma de grados 10 y 11)
         daneSede: String(f[21] || '').trim(), // columna "DANE SEDE"
       };
     });

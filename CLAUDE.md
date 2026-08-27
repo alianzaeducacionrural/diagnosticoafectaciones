@@ -51,7 +51,7 @@ del usuario — ver `Plataformas/Seguimiento a egresados/gas/Code.gs` y
 
 | Método | `accion` | Devuelve |
 |---|---|---|
-| GET | `catalogos` | `{ padrinos, geo, asignacion, registradas, conectividad }` |
+| GET | `catalogos` | `{ padrinos, geo, asignacion, registradas, conectividad, simat }` |
 | GET | `misRegistros&padrino=Nombre` | sedes ya guardadas por ese padrino (Borrador o Completo) |
 | GET | `todosLosRegistros` | TODAS las sedes de TODOS los padrinos — usado por el dashboard |
 | POST | `iniciarSede` | crea/reutiliza la carpeta de la sede; bloquea solo si es de OTRO padrino |
@@ -71,8 +71,15 @@ pero sin fila en `registros`, típicamente envíos que fallaron a mitad de camin
 mano si una subida llegó a Drive), `listarPestanas` y `leerRango` (solo lectura, diagnóstico
 genérico — listan las pestañas/encabezados o un rango de celdas de cualquier spreadsheet por
 ID, para ubicar un dato nuevo en el Sheet antes de decidir cómo conectarlo), `eliminarPestana`
-(genérico, borra una pestaña por nombre) y `completarCamposDerivados` (acepta `dryRun` —
-recalcula Matrícula/DANE/Conectividad para todas las filas ya guardadas, ver más abajo).
+(genérico, borra una pestaña por nombre), `completarCamposDerivados` (acepta `dryRun` —
+recalcula Matrícula/DANE/Conectividad para todas las filas ya guardadas, ver más abajo),
+`cargarSedesInforme` (acepta `dryRun` — inserta sedes nuevas desde un censo externo sin
+descripción/evidencia, llamando a `guardarSede_` con padrino y rector ya resueltos) y
+`actualizarNivelInforme` (acepta `dryRun` — actualiza solo la columna Nivel de afectación de
+sedes que ya tienen reporte, sin tocar nada más). Las dos últimas se usaron una vez para cargar
+`INFORME DE SEDES CON AFECTACIÓN.xlsx` (censo de la Gobernación, cruzado por DANE contra
+`SIMAT_SHEET_ID` y filtrado contra el catálogo de 771 sedes) — quedan en el código por si llega
+otro censo similar, no hay que reescribirlas.
 
 **Columnas derivadas de `registros`** (`Matrícula`, `codigo identificacion ie`,
 `espacios afectados /salones/laboratorios/aula maxima. etc`, `Conectividad` — las últimas 4):
@@ -118,6 +125,14 @@ detalle de sede se muestra como un banner grande con ícono (`.detalle-conectivi
 después de un sismo es un dato operativo (con quién se puede coordinar por internet). En la
 tabla y en el buscador de texto sigue siendo la placa chica (`placaConectividad`) y el código
 DANE (`r.daneSede`) es buscable junto con municipio/institución/sede/padrino.
+
+**Matrícula por nivel educativo** (Primaria/Posprimaria/Media): a diferencia de la Matrícula
+total (que sí queda guardada en `registros`), este desglose se lee en vivo desde
+`SIMAT_SHEET_ID` vía `catalogos.simat` (`leerSimat_`, columnas "PRIMARÍA"=grados 0-5,
+la columna sin encabezado junto a ella=grados 6-9 ("Posprimaria", el modelo de básica
+secundaria rural) y "MEDIA"=grados 10-11) — no se persiste en el Sheet de resultados. Se cruza
+igual que Conectividad (`mapaSimat`/`claveSedeJs`), con KPI y chips en el detalle de sede
+(`.detalle-matricula-chip`) calculados sobre `filtrados`.
 
 ## Por qué los videos no pasan por Apps Script
 

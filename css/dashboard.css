@@ -44,6 +44,19 @@
   --nivel-ns-bd:  var(--ink-300);
   --nivel-ns:     var(--ink-400);
 
+  /* Matrícula por nivel educativo — no es severidad, es una categoría
+     aparte, así que evita reusar safe/caution/danger (confundiría). Clay
+     ya identifica "matrícula" en el stat grande del detalle; se suma
+     info (ya en styles.css) y un violeta nuevo, solo para Media. */
+  --edu-primaria:     var(--clay-600);
+  --edu-posprimaria:  var(--info-ink);
+  --edu-posprimaria-bg: var(--info-bg);
+  --edu-posprimaria-bd: var(--info-border);
+  --edu-media-ink:    #6B3F8E;
+  --edu-media:        #7C4FA0;
+  --edu-media-bg:     #F1EAF7;
+  --edu-media-bd:     #D6BFE6;
+
   --panel-ancho: 1280px;
 }
 
@@ -132,7 +145,7 @@
 /* ─── KPIs ──────────────────────────────────────────────────── */
 
 .panel-kpis {
-  display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px;
+  display: grid; grid-template-columns: 1.2fr 0.85fr 0.85fr 0.85fr 1fr 1.15fr; gap: 14px; margin-bottom: 18px;
 }
 
 .kpi-etiqueta { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-600); }
@@ -169,6 +182,35 @@
 .kpi-conectividad-barra { display: flex; height: 7px; border-radius: var(--radio-pill); overflow: hidden; background: var(--ink-150); }
 .kpi-conectividad-barra-si { background: var(--safe-ink); height: 100%; transition: width var(--t-fast); }
 .kpi-conectividad-barra-no { background: var(--danger-ink); height: 100%; transition: width var(--t-fast); }
+
+/* KPI de matrícula por nivel educativo — mismo patrón que el de
+   conectividad (cifras chicas + franja proporcional), con 3 categorías
+   en vez de 2. */
+.kpi-matricula-nivel-stats { display: flex; align-items: center; gap: 10px; margin: 2px 0 8px; flex-wrap: wrap; }
+.kpi-matricula-nivel-stat { display: flex; flex-direction: column; gap: 1px; }
+.kpi-matricula-nivel-numero { font-family: 'Zilla Slab', serif; font-size: 1.3rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi-matricula-nivel-label { font-size: 0.66rem; color: var(--ink-600); font-weight: 500; }
+.kpi-mn-primaria .kpi-matricula-nivel-numero { color: var(--edu-primaria); }
+.kpi-mn-posprimaria .kpi-matricula-nivel-numero { color: var(--edu-posprimaria); }
+.kpi-mn-media .kpi-matricula-nivel-numero { color: var(--edu-media-ink); }
+
+.kpi-matricula-nivel-barra { display: flex; height: 7px; border-radius: var(--radio-pill); overflow: hidden; background: var(--ink-150); }
+.kpi-mn-barra-primaria { background: var(--edu-primaria); height: 100%; transition: width var(--t-fast); }
+.kpi-mn-barra-posprimaria { background: var(--edu-posprimaria); height: 100%; transition: width var(--t-fast); }
+.kpi-mn-barra-media { background: var(--edu-media); height: 100%; transition: width var(--t-fast); }
+
+/* Chips de desglose en el detalle de sede, debajo de "N estudiantes
+   matriculados". */
+.detalle-matricula-desglose { display: flex; flex-wrap: wrap; gap: 6px; margin: -10px 0 18px; }
+.detalle-matricula-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 10px; border-radius: var(--radio-pill); border: 1px solid;
+  font-size: 0.76rem; font-weight: 500;
+}
+.detalle-matricula-chip strong { font-variant-numeric: tabular-nums; font-weight: 700; }
+.detalle-matricula-chip[data-nivel-edu="primaria"] { color: var(--edu-primaria); background: var(--clay-50); border-color: var(--clay-300); }
+.detalle-matricula-chip[data-nivel-edu="posprimaria"] { color: var(--edu-posprimaria); background: var(--edu-posprimaria-bg); border-color: var(--edu-posprimaria-bd); }
+.detalle-matricula-chip[data-nivel-edu="media"] { color: var(--edu-media-ink); background: var(--edu-media-bg); border-color: var(--edu-media-bd); }
 
 /* ─── Gráficos: barras horizontales caseras ────────────────── */
 
