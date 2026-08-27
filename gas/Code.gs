@@ -973,11 +973,20 @@ function actualizarNivelInforme_(datos) {
 // "Descripción del daño"; nunca una sede que ya tenga descripción propia o
 // al menos una evidencia (aunque su Nivel también venga del mismo censo,
 // vía actualizarNivelInforme_ — esa sí es una sede con reporte real).
-// Con datos.dryRun=true solo reporta, sin escribir.
+// También sobreescribe una sede que ya tenga el texto de una versión
+// anterior de este mismo placeholder (DESCRIPCIONES_INFORME_SED_ANTERIORES)
+// — así se puede acortar/ajustar el texto sin duplicar la lógica de "sin
+// descripción ni evidencia" en otra función. Con datos.dryRun=true solo
+// reporta, sin escribir.
 var DESCRIPCION_INFORME_SED = 'Información suministrada por la Secretaría de Educación de ' +
-  'Caldas (Informe Ejecutivo de Sedes Afectadas, sismo del 10 de agosto de 2026) que indica ' +
-  'el nivel de afectación de esta sede. Aún no cuenta con descripción detallada ni evidencia ' +
-  'fotográfica — pendiente de que el padrino asignado la visite.';
+  'Caldas que indica el nivel de afectación de esta sede.';
+
+var DESCRIPCIONES_INFORME_SED_ANTERIORES = [
+  'Información suministrada por la Secretaría de Educación de Caldas (Informe Ejecutivo de ' +
+  'Sedes Afectadas, sismo del 10 de agosto de 2026) que indica el nivel de afectación de esta ' +
+  'sede. Aún no cuenta con descripción detallada ni evidencia fotográfica — pendiente de que ' +
+  'el padrino asignado la visite.',
+];
 
 function completarDescripcionesInforme_(datos) {
   if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
@@ -992,7 +1001,8 @@ function completarDescripcionesInforme_(datos) {
   filas.forEach(function (f, i) {
     resultado.filasRevisadas++;
     var descripcion = String(f[COL.DESCRIPCION - 1] || '').trim();
-    if (descripcion) return;
+    var esPlaceholderAnterior = DESCRIPCIONES_INFORME_SED_ANTERIORES.indexOf(descripcion) !== -1;
+    if (descripcion && !esPlaceholderAnterior) return;
 
     var evidencias;
     try { evidencias = JSON.parse(f[COL.EVIDENCIAS - 1] || '[]'); } catch (e) { evidencias = []; }
