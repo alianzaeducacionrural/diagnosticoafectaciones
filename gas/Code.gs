@@ -119,6 +119,10 @@ function doPost(e) {
         return jsonResponse(eliminarPestana_(datos));
       case 'completarCamposDerivados':
         return jsonResponse(completarCamposDerivados_(datos));
+      case 'cargarSedesInforme':
+        return jsonResponse(cargarSedesInforme_(datos));
+      case 'actualizarNivelInforme':
+        return jsonResponse(actualizarNivelInforme_(datos));
       default:
         return errorResponse('Acción no reconocida: ' + accion);
     }
@@ -826,6 +830,129 @@ function completarCamposDerivados_(datos) {
       sheet.getRange(i + 2, COL.CONECTIVIDAD).setValue(derivados.conectividad);
     }
   });
+
+  return resultado;
+}
+
+// ─── POST accion=cargarSedesInforme (uso único) ──────────────
+// Carga sedes nuevas desde un censo externo (p. ej. un informe de la
+// Secretaría/Gobernación) que no pasó por el formulario de los padrinos:
+// trae Municipio/Institución/Sede/Nivel pero no descripción ni evidencia.
+// datos.filas: [{ municipio, institucion, sede, nivel, rectorNombre?,
+// rectorCorreo?, rectorTelefono? }, ...] — ya resueltos contra el
+// catálogo (municipio/institución/sede canónicos) antes de llamar esta
+// acción; esta función NO valida contra MUN_IE_SEDE.
+//
+// El padrino de todas las filas nuevas es "Alejandro Osorio Loaiza" (se
+// busca en la pestaña "padrinos" para tomar su correo/teléfono reales) —
+// el censo no trae padrino. Cada sede se guarda llamando directamente a
+// guardarSede_ con descripcion:'' y evidencias:[], así se reutiliza toda
+// su lógica (camposDerivados_, cálculo de Estado, forma de la fila) en
+// vez de reimplementarla. Sedes que ya existan en "registros" se omiten
+// (red de seguridad — no debería pasar si datos.filas ya viene filtrado).
+//
+// Con datos.dryRun=true no llama a guardarSede_ (no escribe nada): solo
+// cuenta cuántas se insertarían y arma una muestra de 5 con los campos
+// derivados que les tocaría, para revisar antes de ejecutar de verdad.
+function cargarSedesInforme_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var dryRun = !!(datos && datos.dryRun);
+  var filas = Array.isArray(datos && datos.filas) ? datos.filas : [];
+
+  var padrinoDefault = leerPadrinos_().filter(function (p) {
+    return normalizarClave_(p.nombre) === normalizarClave_('Alejandro Osorio Loaiza');
+  })[0];
+  if (!padrinoDefault) throw new Error('No se encontró a Alejandro Osorio Loaiza en la pestaña "padrinos".');
+
+  var resultado = { dryRun: dryRun, total: filas.length, insertadas: 0, omitidas: [], errores: [], muestra: [] };
+  var mapas = dryRun ? construirMapasDerivados_() : null;
+
+  filas.forEach(function (f) {
+    var municipio = String(f.municipio || '').trim();
+    var institucion = String(f.institucion || '').trim();
+    var sede = String(f.sede || '').trim();
+    if (!municipio || !institucion || !sede) {
+      resultado.errores.push({ municipio: municipio, institucion: institucion, sede: sede, error: 'Faltan datos.' });
+      return;
+    }
+
+    var existente = buscarFilaSede_(municipio, institucion, sede);
+    if (existente) {
+      resultado.omitidas.push({ municipio: municipio, institucion: institucion, sede: sede, motivo: 'ya existe en registros' });
+      return;
+    }
+
+    if (dryRun) {
+      var derivados = camposDerivados_(municipio, institucion, sede, mapas);
+      resultado.insertadas++;
+      if (resultado.muestra.length < 5) {
+        resultado.muestra.push({
+          municipio: municipio, institucion: institucion, sede: sede, nivel: f.nivel || '',
+          rector: f.rectorNombre || '(sin rector)',
+          matricula: derivados.matricula, daneSede: derivados.daneSede, conectividad: derivados.conectividad,
+        });
+      }
+      return;
+    }
+
+    try {
+      guardarSede_({
+        padrino: padrinoDefault,
+        rector: { nombre: f.rectorNombre || '', correo: f.rectorCorreo || '', telefono: f.rectorTelefono || '' },
+        municipio: municipio, institucion: institucion, sede: sede,
+        nivel: f.nivel || '', descripcion: '', evidencias: [],
+      });
+      resultado.insertadas++;
+    } catch (e) {
+      resultado.errores.push({ municipio: municipio, institucion: institucion, sede: sede, error: e.message });
+    }
+  });
+
+  return resultado;
+}
+
+// ─── POST accion=actualizarNivelInforme (uso único) ──────────
+// Para sedes que YA tienen un reporte de un padrino, actualiza SOLO la
+// columna "Nivel de afectación" con el dato de un censo externo más
+// reciente/prioritario — nunca toca descripción, evidencia, estado,
+// padrino ni rector. datos.filas: [{ municipio, institucion, sede,
+// nivelNuevo }, ...]. Si la sede no existe en "registros" se reporta en
+// noEncontradas (no se crea). Si el nivel ya es igual, no se escribe.
+// Con datos.dryRun=true solo reporta cuántas cambiarían.
+function actualizarNivelInforme_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var dryRun = !!(datos && datos.dryRun);
+  var filas = Array.isArray(datos && datos.filas) ? datos.filas : [];
+  var resultado = { dryRun: dryRun, total: filas.length, actualizadas: 0, sinCambio: 0, noEncontradas: [] };
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var sheet = getSheet_('registros');
+    filas.forEach(function (f) {
+      var municipio = String(f.municipio || '').trim();
+      var institucion = String(f.institucion || '').trim();
+      var sede = String(f.sede || '').trim();
+      var nivelNuevo = String(f.nivelNuevo || '').trim();
+
+      var existente = buscarFilaSede_(municipio, institucion, sede);
+      if (!existente) {
+        resultado.noEncontradas.push({ municipio: municipio, institucion: institucion, sede: sede });
+        return;
+      }
+
+      var nivelActual = String(existente.valores[10] || '');
+      if (nivelActual === nivelNuevo) {
+        resultado.sinCambio++;
+        return;
+      }
+
+      resultado.actualizadas++;
+      if (!dryRun) sheet.getRange(existente.numeroFila, 11).setValue(nivelNuevo);
+    });
+  } finally {
+    lock.releaseLock();
+  }
 
   return resultado;
 }
