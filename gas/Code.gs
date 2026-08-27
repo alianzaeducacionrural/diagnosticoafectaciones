@@ -43,7 +43,8 @@ var HEADERS_REGISTROS = [
 
 // Índices 1-based de columnas.
 var COL = {
-  PADRINO: 2, MUNICIPIO: 5, INSTITUCION: 6, SEDE: 10, EVIDENCIAS: 17, ESTADO: 18,
+  PADRINO: 2, MUNICIPIO: 5, INSTITUCION: 6, SEDE: 10, DESCRIPCION: 12,
+  EVIDENCIAS: 17, ESTADO: 18,
   MATRICULA: 19, DANE_SEDE: 20, ESPACIOS_AFECTADOS: 21, CONECTIVIDAD: 22,
 };
 
@@ -123,6 +124,8 @@ function doPost(e) {
         return jsonResponse(cargarSedesInforme_(datos));
       case 'actualizarNivelInforme':
         return jsonResponse(actualizarNivelInforme_(datos));
+      case 'completarDescripcionesInforme':
+        return jsonResponse(completarDescripcionesInforme_(datos));
       default:
         return errorResponse('Acción no reconocida: ' + accion);
     }
@@ -957,6 +960,49 @@ function actualizarNivelInforme_(datos) {
   } finally {
     lock.releaseLock();
   }
+
+  return resultado;
+}
+
+// ─── POST accion=completarDescripcionesInforme (uso único) ──
+// Para sedes que llegaron por cargarSedesInforme_ sin descripción del daño
+// ni evidencia (el censo de la Secretaría de Educación no trae ninguna de
+// las dos), agrega un texto de descripción genérico que deja claro el
+// origen del dato — así el detalle de sede en el panel no queda en blanco
+// mientras el padrino asignado no la visite. Solo toca la columna
+// "Descripción del daño"; nunca una sede que ya tenga descripción propia o
+// al menos una evidencia (aunque su Nivel también venga del mismo censo,
+// vía actualizarNivelInforme_ — esa sí es una sede con reporte real).
+// Con datos.dryRun=true solo reporta, sin escribir.
+var DESCRIPCION_INFORME_SED = 'Información suministrada por la Secretaría de Educación de ' +
+  'Caldas (Informe Ejecutivo de Sedes Afectadas, sismo del 10 de agosto de 2026) que indica ' +
+  'el nivel de afectación de esta sede. Aún no cuenta con descripción detallada ni evidencia ' +
+  'fotográfica — pendiente de que el padrino asignado la visite.';
+
+function completarDescripcionesInforme_(datos) {
+  if (String((datos && datos.clave) || '') !== ADMIN_KEY) throw new Error('Clave inválida.');
+  var dryRun = !!(datos && datos.dryRun);
+  var resultado = { dryRun: dryRun, filasRevisadas: 0, actualizadas: [] };
+
+  var sheet = getSheet_('registros');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return resultado;
+
+  var filas = sheet.getRange(2, 1, lastRow - 1, HEADERS_REGISTROS.length).getValues();
+  filas.forEach(function (f, i) {
+    resultado.filasRevisadas++;
+    var descripcion = String(f[COL.DESCRIPCION - 1] || '').trim();
+    if (descripcion) return;
+
+    var evidencias;
+    try { evidencias = JSON.parse(f[COL.EVIDENCIAS - 1] || '[]'); } catch (e) { evidencias = []; }
+    if (evidencias.length > 0) return;
+
+    resultado.actualizadas.push({
+      fila: i + 2, municipio: f[COL.MUNICIPIO - 1], institucion: f[COL.INSTITUCION - 1], sede: f[COL.SEDE - 1],
+    });
+    if (!dryRun) sheet.getRange(i + 2, COL.DESCRIPCION).setValue(DESCRIPCION_INFORME_SED);
+  });
 
   return resultado;
 }

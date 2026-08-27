@@ -76,10 +76,13 @@ recalcula Matrícula/DANE/Conectividad para todas las filas ya guardadas, ver m�
 `cargarSedesInforme` (acepta `dryRun` — inserta sedes nuevas desde un censo externo sin
 descripción/evidencia, llamando a `guardarSede_` con padrino y rector ya resueltos) y
 `actualizarNivelInforme` (acepta `dryRun` — actualiza solo la columna Nivel de afectación de
-sedes que ya tienen reporte, sin tocar nada más). Las dos últimas se usaron una vez para cargar
-`INFORME DE SEDES CON AFECTACIÓN.xlsx` (censo de la Gobernación, cruzado por DANE contra
-`SIMAT_SHEET_ID` y filtrado contra el catálogo de 771 sedes) — quedan en el código por si llega
-otro censo similar, no hay que reescribirlas.
+sedes que ya tienen reporte, sin tocar nada más) y `completarDescripcionesInforme` (acepta
+`dryRun` — a toda sede sin Descripción del daño ni evidencia le agrega un texto fijo
+(`DESCRIPCION_INFORME_SED`) indicando que el dato viene del censo de la Secretaría de
+Educación; nunca toca una sede que ya tenga descripción propia o al menos una evidencia). Las
+tres se usaron para cargar `INFORME DE SEDES CON AFECTACIÓN.xlsx` (censo de la Gobernación,
+cruzado por DANE contra `SIMAT_SHEET_ID` y filtrado contra el catálogo de 771 sedes) — quedan
+en el código por si llega otro censo similar, no hay que reescribirlas.
 
 **Columnas derivadas de `registros`** (`Matrícula`, `codigo identificacion ie`,
 `espacios afectados /salones/laboratorios/aula maxima. etc`, `Conectividad` — las últimas 4):
