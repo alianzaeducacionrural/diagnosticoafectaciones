@@ -11,7 +11,7 @@ const NIVEL_SIN_CLASIFICAR = '__sin_nivel__';
 let registros = [];
 let catalogos = null;
 let totalSedesCatalogo = 0;
-let orden = { campo: 'timestamp', dir: 'desc' };
+let orden = { campo: 'municipio', dir: 'asc' };
 let mapaConectividad = new Map();
 let mapaSimat = new Map();
 
@@ -144,13 +144,20 @@ function obtenerFiltrados() {
     return true;
   });
 
+  const comparar = (va, vb) => (typeof va === 'number' && typeof vb === 'number')
+    ? va - vb
+    : String(va || '').localeCompare(String(vb || ''), 'es');
+
   lista.sort((a, b) => {
-    const va = a[orden.campo];
-    const vb = b[orden.campo];
-    let cmp;
-    if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
-    else cmp = String(va || '').localeCompare(String(vb || ''), 'es');
-    return orden.dir === 'asc' ? cmp : -cmp;
+    let cmp = comparar(a[orden.campo], b[orden.campo]);
+    if (cmp !== 0) return orden.dir === 'asc' ? cmp : -cmp;
+    // Desempate estable: Municipio → Institución → Sede, así el orden por
+    // defecto (Municipio) agrupa las sedes de una misma institución en vez
+    // de quedar en el orden de llegada del backend.
+    if (orden.campo !== 'municipio') { cmp = comparar(a.municipio, b.municipio); if (cmp !== 0) return cmp; }
+    if (orden.campo !== 'institucion') { cmp = comparar(a.institucion, b.institucion); if (cmp !== 0) return cmp; }
+    if (orden.campo !== 'sede') { cmp = comparar(a.sede, b.sede); if (cmp !== 0) return cmp; }
+    return 0;
   });
 
   return lista;
