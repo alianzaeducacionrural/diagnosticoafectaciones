@@ -604,6 +604,7 @@ function abrirDetalle(r) {
       ${r.correoPadrino ? `<div class="detalle-linea"><span>Correo padrino</span><span>${escaparHtml(r.correoPadrino)}</span></div>` : ''}
       ${r.telefonoPadrino ? `<div class="detalle-linea"><span>Teléfono padrino</span><span>${escaparHtml(r.telefonoPadrino)}</span></div>` : ''}
       ${r.rectorNombre ? `<div class="detalle-linea"><span>Rector</span><span>${escaparHtml(r.rectorNombre)}</span></div>` : ''}
+      ${r.rectorCorreo ? `<div class="detalle-linea"><span>Correo rector</span><span>${escaparHtml(r.rectorCorreo)}</span></div>` : ''}
       ${r.rectorTelefono ? `<div class="detalle-linea"><span>Teléfono rector</span><span>${escaparHtml(r.rectorTelefono)}</span></div>` : ''}
     </div>
 
