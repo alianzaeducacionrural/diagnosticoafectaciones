@@ -154,12 +154,20 @@
   display: grid; grid-template-columns: 1fr 0.75fr 1.05fr 1.9fr; gap: 14px; margin-bottom: 18px;
 }
 
+/* Los 4 tiles quedan más bajos que el resto de tarjetas del panel (menos
+   padding vertical) y todos centran su contenido verticalmente — Cobertura
+   incluida, que antes no tenía kpi-tile y por eso arrancaba pegada arriba
+   mientras las demás se veían centradas. */
+.panel-kpis .tarjeta-panel { padding: 14px 20px; }
+
 .kpi-etiqueta { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-600); }
+
+.kpi-cobertura { display: flex; flex-direction: column; justify-content: center; }
 
 /* Apilada (etiqueta / valor grande / barra / pie) en vez de la etiqueta y
    el valor peleando por espacio en una misma fila — con "Cobertura de
    sedes" esa fila se partía en dos líneas de forma fea. */
-.kpi-cobertura-cabeza { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.kpi-cobertura-cabeza { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
 .kpi-cobertura-valor { font-family: 'Zilla Slab', serif; font-size: 1.5rem; font-weight: 700; color: var(--ink-900); line-height: 1.1; }
 .barra-cobertura { height: 10px; background: var(--ink-150); border-radius: var(--radio-pill); overflow: hidden; }
 .barra-cobertura .relleno {
@@ -167,7 +175,7 @@
   background: linear-gradient(90deg, var(--clay-500), var(--clay-600));
   transition: width 0.6s var(--ease-out);
 }
-.kpi-cobertura-pie { font-size: 0.78rem; color: var(--ink-600); margin-top: 8px; }
+.kpi-cobertura-pie { font-size: 0.78rem; color: var(--ink-600); margin-top: 6px; }
 .kpi-cobertura-pie span { font-weight: 700; color: var(--clay-700); }
 
 .kpi-tile { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
@@ -180,7 +188,7 @@
 /* KPI de conectividad: dos cifras (con/sin conexión) en el mismo tile en
    vez de un solo número grande, con una franja de dos colores debajo que
    resume la proporción de un vistazo. */
-.kpi-conectividad-stats { display: flex; align-items: center; gap: 12px; margin: 2px 0 8px; }
+.kpi-conectividad-stats { display: flex; align-items: center; gap: 12px; margin: 2px 0 6px; }
 .kpi-conectividad-stat { display: flex; flex-direction: column; gap: 1px; }
 .kpi-conectividad-numero { font-family: 'Zilla Slab', serif; font-size: 1.5rem; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .kpi-conectividad-label { font-size: 0.68rem; color: var(--ink-600); font-weight: 500; }
@@ -205,7 +213,7 @@
   font-family: 'Zilla Slab', serif; font-size: 1.4rem; font-weight: 700;
   color: var(--ink-900); font-variant-numeric: tabular-nums; margin-right: 3px;
 }
-.kpi-matricula-nivel-stats { display: flex; align-items: center; gap: 22px; margin: 6px 0 12px; }
+.kpi-matricula-nivel-stats { display: flex; align-items: center; gap: 22px; margin: 4px 0 8px; }
 .kpi-matricula-nivel-stat { display: flex; flex-direction: column; gap: 3px; }
 .kpi-matricula-nivel-numero { font-family: 'Zilla Slab', serif; font-size: 1.9rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .kpi-matricula-nivel-label { display: inline-flex; align-items: center; gap: 5px; font-size: 0.74rem; color: var(--ink-600); font-weight: 500; white-space: nowrap; }
