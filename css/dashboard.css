@@ -138,6 +138,45 @@
 }
 .panel-filtros select:hover { border-color: var(--clay-400); }
 
+/* Filtro de selección múltiple (Municipio, Nivel) — mismo look que un
+   <select> nativo (mismo padding/borde/flecha) pero es un botón que abre
+   un panel de checkboxes, para poder marcar varios valores a la vez
+   (p. ej. Grave + Inhabilitada). */
+.ms { position: relative; }
+.ms-boton {
+  display: inline-flex; align-items: center;
+  padding: 8px 30px 8px 12px; border-radius: var(--radio-sm); border: 1px solid var(--ink-300);
+  background: var(--surface) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%236B5B4F" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>') no-repeat right 9px center / 13px;
+  font-family: inherit; font-size: 0.83rem; color: var(--ink-700);
+  cursor: pointer; transition: border-color var(--t-fast), background-color var(--t-fast); white-space: nowrap;
+}
+.ms-boton:hover { border-color: var(--clay-400); }
+.ms-boton-texto { max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
+.ms.ms-activo .ms-boton {
+  border-color: var(--clay-500); color: var(--clay-700); font-weight: 600; background-color: var(--clay-50);
+}
+
+.ms-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 20;
+  width: max-content; min-width: 220px; max-width: 300px;
+  background: var(--surface); border: 1px solid var(--ink-200, var(--ink-300));
+  border-radius: var(--radio-sm); box-shadow: var(--sombra-sm); padding: 8px;
+}
+.ms-panel-acciones {
+  display: flex; justify-content: flex-end; padding: 0 4px 6px; margin-bottom: 6px;
+  border-bottom: 1px solid var(--ink-150);
+}
+.ms-accion { background: none; border: none; color: var(--clay-600); font-size: 0.76rem; font-weight: 600; cursor: pointer; padding: 2px 4px; }
+.ms-accion:hover { color: var(--clay-700); text-decoration: underline; }
+
+.ms-opciones { max-height: 260px; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
+.ms-opcion {
+  display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 6px;
+  font-size: 0.83rem; color: var(--ink-700); cursor: pointer; user-select: none;
+}
+.ms-opcion:hover { background: var(--clay-50); }
+.ms-opcion input { accent-color: var(--clay-600); width: 15px; height: 15px; flex-shrink: 0; cursor: pointer; }
+
 /* ─── Tarjetas base ─────────────────────────────────────────── */
 
 .tarjeta-panel {

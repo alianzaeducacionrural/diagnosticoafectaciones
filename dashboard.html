@@ -127,16 +127,28 @@
         <svg class="icono-svg" aria-hidden="true"><use href="#icono-buscar"/></svg>
         <input type="search" id="filtroTexto" placeholder="Buscar municipio, institución, sede, padrino o código DANE…" />
       </div>
-      <select id="filtroMunicipio"><option value="">Todos los municipios</option></select>
-      <select id="filtroNivel">
-        <option value="">Todos los niveles</option>
-        <option value="Sin daños">Sin daños</option>
-        <option value="Leve">Leve</option>
-        <option value="Moderado">Moderado</option>
-        <option value="Grave">Grave</option>
-        <option value="Inhabilitada">Inhabilitada</option>
-        <option value="__sin_nivel__">Sin clasificar</option>
-      </select>
+      <div class="ms" id="filtroMunicipio">
+        <button type="button" class="ms-boton">
+          <span class="ms-boton-texto">Todos los municipios</span>
+        </button>
+        <div class="ms-panel" hidden>
+          <div class="ms-panel-acciones">
+            <button type="button" class="ms-accion" data-ms-accion="ninguno">Limpiar selección</button>
+          </div>
+          <div class="ms-opciones"></div>
+        </div>
+      </div>
+      <div class="ms" id="filtroNivel">
+        <button type="button" class="ms-boton">
+          <span class="ms-boton-texto">Todos los niveles</span>
+        </button>
+        <div class="ms-panel" hidden>
+          <div class="ms-panel-acciones">
+            <button type="button" class="ms-accion" data-ms-accion="ninguno">Limpiar selección</button>
+          </div>
+          <div class="ms-opciones"></div>
+        </div>
+      </div>
       <select id="filtroPadrino"><option value="">Todos los padrinos</option></select>
       <select id="filtroConectividad">
         <option value="">Toda la conectividad</option>

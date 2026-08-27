@@ -15,6 +15,102 @@ let orden = { campo: 'municipio', dir: 'asc' };
 let mapaConectividad = new Map();
 let mapaSimat = new Map();
 
+// ─── Filtros de selección múltiple (Municipio, Nivel) ───────────
+// Sets persistentes fuera del DOM: poblarFiltros() puede correr varias
+// veces (cada "Refrescar") y reconstruye los checkboxes, pero la selección
+// del usuario no debe perderse en el camino.
+const NIVEL_OPCIONES = [
+  { value: 'Sin daños', label: 'Sin daños' },
+  { value: 'Leve', label: 'Leve' },
+  { value: 'Moderado', label: 'Moderado' },
+  { value: 'Grave', label: 'Grave' },
+  { value: 'Inhabilitada', label: 'Inhabilitada' },
+  { value: NIVEL_SIN_CLASIFICAR, label: 'Sin clasificar' },
+];
+const filtroMunicipioSel = new Set();
+const filtroNivelSel = new Set();
+let msMunicipio = null;
+let msNivel = null;
+
+function crearFiltroMultiple(elId, opciones, etiquetaTodos, seleccion, alCambiar) {
+  const raiz = document.getElementById(elId);
+  const boton = raiz.querySelector('.ms-boton');
+  const textoBoton = boton.querySelector('.ms-boton-texto');
+  const panel = raiz.querySelector('.ms-panel');
+  const lista = raiz.querySelector('.ms-opciones');
+
+  function pintarOpciones() {
+    lista.innerHTML = opciones.map((o) => `
+      <label class="ms-opcion">
+        <input type="checkbox" value="${escaparHtml(o.value)}" ${seleccion.has(o.value) ? 'checked' : ''}>
+        <span>${escaparHtml(o.label)}</span>
+      </label>
+    `).join('');
+  }
+
+  function actualizarTexto() {
+    if (seleccion.size === 0) textoBoton.textContent = etiquetaTodos;
+    else if (seleccion.size === 1) {
+      const o = opciones.find((op) => op.value === [...seleccion][0]);
+      textoBoton.textContent = o ? o.label : etiquetaTodos;
+    } else {
+      textoBoton.textContent = `${seleccion.size} seleccionados`;
+    }
+    raiz.classList.toggle('ms-activo', seleccion.size > 0);
+  }
+
+  pintarOpciones();
+
+  lista.onchange = (e) => {
+    const cb = e.target;
+    if (cb.type !== 'checkbox') return;
+    if (cb.checked) seleccion.add(cb.value); else seleccion.delete(cb.value);
+    actualizarTexto();
+    alCambiar();
+  };
+
+  boton.onclick = (e) => {
+    e.stopPropagation();
+    const abrir = panel.hidden;
+    document.querySelectorAll('.ms-panel').forEach((p) => { p.hidden = true; });
+    panel.hidden = !abrir;
+  };
+
+  raiz.querySelector('[data-ms-accion="ninguno"]').onclick = () => {
+    if (seleccion.size === 0) return;
+    seleccion.clear();
+    pintarOpciones();
+    actualizarTexto();
+    alCambiar();
+  };
+
+  actualizarTexto();
+  return {
+    limpiar() {
+      if (seleccion.size === 0) return;
+      seleccion.clear();
+      pintarOpciones();
+      actualizarTexto();
+    },
+    // Usado por los gráficos: hacer click en una barra agrega/quita ese
+    // municipio o nivel de la selección, igual que marcar su checkbox.
+    alternar(valor) {
+      if (seleccion.has(valor)) seleccion.delete(valor); else seleccion.add(valor);
+      pintarOpciones();
+      actualizarTexto();
+    },
+  };
+}
+
+// Un único listener para cerrar cualquier panel abierto al hacer clic
+// afuera — evita apilar un listener nuevo cada vez que poblarFiltros()
+// reconstruye los checkboxes.
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.ms-panel:not([hidden])').forEach((p) => {
+    if (!p.closest('.ms').contains(e.target)) p.hidden = true;
+  });
+});
+
 function iconoSvg(id) {
   return `<svg class="icono-svg" aria-hidden="true"><use href="#${id}"></use></svg>`;
 }
@@ -113,28 +209,38 @@ function prepararFila(r) {
 }
 
 function poblarFiltros() {
-  const municipios = [...new Set(registros.map((r) => r.municipio))].sort();
+  const municipios = [...new Set(registros.map((r) => r.municipio))].sort((a, b) => a.localeCompare(b, 'es'));
   const padrinos = [...new Set(registros.map((r) => r.padrino))].sort();
-
-  const selMun = document.getElementById('filtroMunicipio');
-  municipios.forEach((m) => selMun.add(new Option(m, m)));
 
   const selPad = document.getElementById('filtroPadrino');
   padrinos.forEach((p) => selPad.add(new Option(p, p)));
+
+  msMunicipio = crearFiltroMultiple(
+    'filtroMunicipio',
+    municipios.map((m) => ({ value: m, label: m })),
+    'Todos los municipios',
+    filtroMunicipioSel,
+    renderizarTodo
+  );
+  msNivel = crearFiltroMultiple(
+    'filtroNivel',
+    NIVEL_OPCIONES,
+    'Todos los niveles',
+    filtroNivelSel,
+    renderizarTodo
+  );
 }
 
 // ─── Filtrado + orden ────────────────────────────────────────
 
 function obtenerFiltrados() {
   const texto = document.getElementById('filtroTexto').value.trim().toLowerCase();
-  const municipio = document.getElementById('filtroMunicipio').value;
-  const nivel = document.getElementById('filtroNivel').value;
   const padrino = document.getElementById('filtroPadrino').value;
   const conectividad = document.getElementById('filtroConectividad').value;
 
   let lista = registros.filter((r) => {
-    if (municipio && r.municipio !== municipio) return false;
-    if (nivel && r.nivelClave !== nivel) return false;
+    if (filtroMunicipioSel.size && !filtroMunicipioSel.has(r.municipio)) return false;
+    if (filtroNivelSel.size && !filtroNivelSel.has(r.nivelClave)) return false;
     if (padrino && r.padrino !== padrino) return false;
     if (conectividad && claveConectividad(r.conectividad) !== conectividad) return false;
     if (texto) {
@@ -243,14 +349,13 @@ function renderGraficoNivel(filtrados) {
   const claves = [...NIVELES, NIVEL_SIN_CLASIFICAR];
   const conteos = claves.map((c) => filtrados.filter((r) => r.nivelClave === c).length);
   const max = Math.max(...conteos, 1);
-  const nivelActivo = document.getElementById('filtroNivel').value;
 
   cont.innerHTML = claves
     .map((clave, i) => {
       const etiqueta = clave === NIVEL_SIN_CLASIFICAR ? 'Sin clasificar' : clave;
       const n = conteos[i];
       const pct = Math.round((n / max) * 100);
-      const abierto = nivelActivo === clave;
+      const abierto = filtroNivelSel.has(clave);
 
       // Desglose SOLO de esta franja de nivel: qué municipios la componen.
       const porMun = {};
@@ -282,8 +387,7 @@ function renderGraficoNivel(filtrados) {
 
   cont.querySelectorAll('[data-clave]').forEach((fila) => {
     fila.querySelector('[data-role="fila-clicable"]').addEventListener('click', () => {
-      const sel = document.getElementById('filtroNivel');
-      sel.value = sel.value === fila.dataset.clave ? '' : fila.dataset.clave;
+      msNivel.alternar(fila.dataset.clave);
       renderizarTodo();
     });
   });
@@ -305,7 +409,6 @@ function renderGraficoMunicipio(filtrados) {
 
   const max = Math.max(...filas.map((f) => f.total), 1);
   const claves = [...NIVELES, NIVEL_SIN_CLASIFICAR];
-  const municipioActivo = document.getElementById('filtroMunicipio').value;
 
   document.getElementById('notaMunicipios').textContent = `${filas.length} municipio${filas.length === 1 ? '' : 's'} con reportes · click en una barra para ver el detalle y filtrar`;
 
@@ -325,7 +428,7 @@ function renderGraficoMunicipio(filtrados) {
         })
         .join('');
       const anchoTotal = Math.round((f.total / max) * 100);
-      const abierto = municipioActivo === f.mun;
+      const abierto = filtroMunicipioSel.has(f.mun);
 
       return `
         <div class="fila-barra-detalle-wrap${abierto ? ' abierto' : ''}" data-clave="${escaparHtml(f.mun)}">
@@ -350,8 +453,7 @@ function renderGraficoMunicipio(filtrados) {
 
   cont.querySelectorAll('[data-clave]').forEach((fila) => {
     fila.querySelector('[data-role="fila-clicable"]').addEventListener('click', () => {
-      const sel = document.getElementById('filtroMunicipio');
-      sel.value = sel.value === fila.dataset.clave ? '' : fila.dataset.clave;
+      msMunicipio.alternar(fila.dataset.clave);
       renderizarTodo();
     });
   });
@@ -407,7 +509,6 @@ function renderGraficoConectividad(filtrados) {
     .sort((a, b) => a.mun.localeCompare(b.mun, 'es'));
 
   const max = Math.max(...filas.map((f) => f.total), 1);
-  const municipioActivo = document.getElementById('filtroMunicipio').value;
 
   document.getElementById('notaConectividad').textContent = `${filas.length} municipio${filas.length === 1 ? '' : 's'} con reportes · click en una barra para filtrar`;
 
@@ -427,7 +528,7 @@ function renderGraficoConectividad(filtrados) {
         })
         .join('');
       const anchoTotal = Math.round((f.total / max) * 100);
-      const abierto = municipioActivo === f.mun;
+      const abierto = filtroMunicipioSel.has(f.mun);
 
       return `
         <div class="fila-barra-detalle-wrap${abierto ? ' abierto' : ''}" data-clave="${escaparHtml(f.mun)}">
@@ -452,8 +553,7 @@ function renderGraficoConectividad(filtrados) {
 
   cont.querySelectorAll('[data-clave]').forEach((fila) => {
     fila.querySelector('[data-role="fila-clicable"]').addEventListener('click', () => {
-      const sel = document.getElementById('filtroMunicipio');
-      sel.value = sel.value === fila.dataset.clave ? '' : fila.dataset.clave;
+      msMunicipio.alternar(fila.dataset.clave);
       renderizarTodo();
     });
   });
@@ -701,17 +801,17 @@ document.addEventListener('DOMContentLoaded', () => {
     temporizadorResize = setTimeout(igualarAlturaGraficos, 150);
   });
 
-  ['filtroTexto', 'filtroMunicipio', 'filtroNivel', 'filtroPadrino', 'filtroConectividad'].forEach((id) => {
+  ['filtroTexto', 'filtroPadrino', 'filtroConectividad'].forEach((id) => {
     const el = document.getElementById(id);
     el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', renderizarTodo);
   });
 
   document.getElementById('btnLimpiarFiltros').addEventListener('click', () => {
     document.getElementById('filtroTexto').value = '';
-    document.getElementById('filtroMunicipio').value = '';
-    document.getElementById('filtroNivel').value = '';
     document.getElementById('filtroPadrino').value = '';
     document.getElementById('filtroConectividad').value = '';
+    if (msMunicipio) msMunicipio.limpiar();
+    if (msNivel) msNivel.limpiar();
     renderizarTodo();
   });
 
