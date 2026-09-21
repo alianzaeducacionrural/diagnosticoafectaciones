@@ -62,16 +62,18 @@
   --edu-media:        #7C4FA0;
   --edu-media-bg:     #F1EAF7;
   --edu-media-bd:     #D6BFE6;
-
-  --panel-ancho: 1280px;
 }
 
 .cuerpo-panel { background: var(--ink-100); }
 
+/* Ancho completo de la ventana (sin tope): en pantallas grandes los gráficos
+   y la tabla aprovechan todo el espacio en vez de quedar en una columna
+   centrada. */
 .panel-shell {
-  max-width: var(--panel-ancho);
-  margin: 0 auto;
-  padding: 0 20px 60px;
+  /* Margen lateral: crece un poco con la ventana (20px → 40px). El encabezado
+     lo usa también para llegar al borde con margen negativo. */
+  --panel-margen: clamp(20px, 2vw, 40px);
+  padding: 0 var(--panel-margen) 60px;
 }
 
 /* ─── Barra superior ────────────────────────────────────────── */
@@ -79,7 +81,7 @@
 .panel-header {
   position: sticky; top: 0; z-index: 20;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  padding: 16px 20px; margin: 0 -20px 18px;
+  padding: 16px var(--panel-margen); margin: 0 calc(-1 * var(--panel-margen)) 18px;
   background: var(--paper); border-bottom: 1px solid var(--ink-200, var(--ink-300));
 }
 
@@ -466,7 +468,7 @@
 .tabla-panel tbody tr:hover { background: var(--clay-50); }
 .tabla-panel tbody tr:not(:last-child) { border-bottom: 1px solid var(--ink-150); }
 .tabla-panel td { padding: 11px 14px; color: var(--ink-700); white-space: nowrap; }
-.tabla-panel td.col-institucion, .tabla-panel td.col-sede { white-space: normal; max-width: 220px; }
+.tabla-panel td.col-institucion, .tabla-panel td.col-sede { white-space: normal; max-width: 320px; }
 .tabla-panel td.col-matricula { font-variant-numeric: tabular-nums; text-align: right; }
 .tabla-panel th[data-orden="matricula"] { text-align: right; }
 
@@ -534,8 +536,8 @@
 }
 
 @media (max-width: 640px) {
-  .panel-shell { padding: 0 12px 40px; }
-  .panel-header { margin: 0 -12px 14px; flex-wrap: wrap; }
+  .panel-shell { --panel-margen: 12px; padding-bottom: 40px; }
+  .panel-header { margin-bottom: 14px; flex-wrap: wrap; }
   .panel-filtros { top: 116px; }
   .panel-kpis { grid-template-columns: 1fr 1fr; }
   .kpi-cobertura, .kpi-matricula-nivel { grid-column: 1 / -1; }

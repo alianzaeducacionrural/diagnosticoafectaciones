@@ -668,13 +668,11 @@ function placaRetorno(clave) {
 }
 
 // Bloque "Retorno a clases" del panel de detalle: la placa grande y, debajo,
-// las observaciones si las hubo. Para una sede sin registrar solo muestra la
-// placa gris, sin el texto de "sin observaciones".
+// las observaciones solo si las hubo (sin observaciones no se muestra nada).
 function bloqueRetorno(r) {
-  const registrado = r.retornoClave !== RETORNO_SIN_REGISTRO;
   const observaciones = r.retornoObs
     ? `<div class="detalle-descripcion">${escaparHtml(r.retornoObs)}</div>`
-    : registrado ? '<p class="detalle-sin-evidencia">Sin observaciones.</p>' : '';
+    : '';
   return `<div class="detalle-bloque">
     <h3>Retorno a clases</h3>
     <div class="placa-retorno placa-retorno-banner" data-retorno="${r.retornoClave}">
