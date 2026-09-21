@@ -55,6 +55,18 @@
   --info-bg:     #EAF1F8;
   --info-border: #BFD7EC;
 
+  /* Retorno a clases — 6 categorías nominales (no una escala de severidad,
+     así que no reusan la rampa de nivel de afectación). Cada una con sólido,
+     tinta, fondo y borde para placas, banners y barras. ΔE mínimo entre los
+     sólidos: 26.8 (continua/total). */
+  --retorno-continua:      #2F7A4F; --retorno-continua-ink:      #1F5C38; --retorno-continua-bg:      #E6F3EA; --retorno-continua-bd:      #A9D9BB;
+  --retorno-condicionado:  #3D6FA6; --retorno-condicionado-ink:  #2B527A; --retorno-condicionado-bg:  #EAF1F8; --retorno-condicionado-bd:  #BFD7EC;
+  --retorno-alternancia:   #7C4FA0; --retorno-alternancia-ink:   #6B3F8E; --retorno-alternancia-bg:   #F1EAF7; --retorno-alternancia-bd:   #D6BFE6;
+  --retorno-casa:          #D99A2B; --retorno-casa-ink:          #8F5C0A; --retorno-casa-bg:          #FCF1DC; --retorno-casa-bd:          #F0CE8E;
+  --retorno-total:         #1C8C8C; --retorno-total-ink:         #125F60; --retorno-total-bg:         #E0F3F3; --retorno-total-bd:         #9CD3D3;
+  --retorno-suspendido:    #B23A2E; --retorno-suspendido-ink:    #8A2C22; --retorno-suspendido-bg:    #FBEAE7; --retorno-suspendido-bd:    #EFC0B7;
+  --retorno-sin_registro:  #9C8C7D; --retorno-sin_registro-ink:  #6B5B4F; --retorno-sin_registro-bg:  #F5EFE6; --retorno-sin_registro-bd:  #DED3C5;
+
   --sombra-xs:  0 1px 2px rgba(36,28,22,0.06);
   --sombra-sm:  0 2px 6px rgba(36,28,22,0.07), 0 1px 2px rgba(36,28,22,0.05);
   --sombra:     0 8px 24px rgba(36,28,22,0.10), 0 2px 8px rgba(36,28,22,0.05);
@@ -282,6 +294,19 @@ select.control:disabled {
   55%  { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
+
+/* ─── Placa de retorno a clases (formulario, resumen y panel) ── */
+.placa-retorno {
+  display: inline-flex; align-items: center; padding: 3px 10px; border-radius: var(--radio-pill);
+  border: 1px solid; font-size: 0.76rem; font-weight: 600; line-height: 1.3; text-align: left;
+}
+.placa-retorno[data-retorno="continua"]     { color: var(--retorno-continua-ink);     background: var(--retorno-continua-bg);     border-color: var(--retorno-continua-bd); }
+.placa-retorno[data-retorno="condicionado"] { color: var(--retorno-condicionado-ink); background: var(--retorno-condicionado-bg); border-color: var(--retorno-condicionado-bd); }
+.placa-retorno[data-retorno="alternancia"]  { color: var(--retorno-alternancia-ink);  background: var(--retorno-alternancia-bg);  border-color: var(--retorno-alternancia-bd); }
+.placa-retorno[data-retorno="casa"]         { color: var(--retorno-casa-ink);         background: var(--retorno-casa-bg);         border-color: var(--retorno-casa-bd); }
+.placa-retorno[data-retorno="total"]        { color: var(--retorno-total-ink);        background: var(--retorno-total-bg);        border-color: var(--retorno-total-bd); }
+.placa-retorno[data-retorno="suspendido"]   { color: var(--retorno-suspendido-ink);   background: var(--retorno-suspendido-bg);   border-color: var(--retorno-suspendido-bd); }
+.placa-retorno[data-retorno="sin_registro"] { color: var(--retorno-sin_registro-ink); background: var(--retorno-sin_registro-bg); border-color: var(--retorno-sin_registro-bd); }
 
 /* ─── Botones ───────────────────────────────── */
 .btn {

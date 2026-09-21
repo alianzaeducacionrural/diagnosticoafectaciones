@@ -288,6 +288,13 @@
 
 .panel-graficos { display: grid; grid-template-columns: 1fr 1.3fr; align-items: start; gap: 14px; margin-bottom: 18px; }
 
+.panel-retorno { margin-bottom: 18px; }
+/* Las etiquetas de retorno son largas ("Regreso total a la presencialidad"):
+   más columna para la etiqueta que en los demás gráficos, y si aun así no
+   caben en pantallas angostas, se parten en dos líneas en vez de cortarse. */
+.grafico-retorno .fila-barra { grid-template-columns: 240px 1fr 40px; }
+.grafico-retorno .fila-barra .etiqueta-barra { white-space: normal; line-height: 1.25; }
+
 .panel-conectividad { margin-bottom: 18px; }
 .panel-conectividad .barras-horizontales { max-height: 280px; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
 
@@ -413,6 +420,18 @@
 .detalle-conectividad-banner[data-conectividad="no"] { color: var(--danger-ink); background: var(--danger-bg); border-color: var(--danger-border); }
 .detalle-conectividad-banner[data-conectividad="sin_dato"] { color: var(--ink-600); background: var(--ink-100); border-color: var(--ink-300); }
 
+/* Retorno a clases en la tabla: las etiquetas largas se parten en vez de
+   ensanchar la columna. */
+.tabla-panel td.col-retorno { white-space: normal; min-width: 170px; max-width: 230px; }
+
+/* Placa grande de retorno en el detalle de sede (mismos colores que la placa
+   chica — ver .placa-retorno en styles.css — pero como banner con ícono). */
+.placa-retorno-banner {
+  display: flex; gap: 10px; padding: 10px 14px; border-width: 1.5px; border-radius: var(--radio-sm);
+  font-size: 0.9rem; font-weight: 700; margin-bottom: 10px;
+}
+.placa-retorno-banner .icono-svg { width: 20px; height: 20px; flex-shrink: 0; }
+
 /* Estadística de matrícula en el detalle de sede — igual de visible que
    el banner de conectividad, entre las placas y el bloque de contacto. */
 .detalle-matricula-stat {
@@ -521,5 +540,6 @@
   .panel-kpis { grid-template-columns: 1fr 1fr; }
   .kpi-cobertura, .kpi-matricula-nivel { grid-column: 1 / -1; }
   .fila-barra { grid-template-columns: 92px 1fr 32px; }
+  .grafico-retorno .fila-barra { grid-template-columns: 128px 1fr 32px; }
   .panel-detalle-caja { width: 100%; }
 }

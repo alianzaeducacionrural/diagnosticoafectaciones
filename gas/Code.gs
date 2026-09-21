@@ -39,6 +39,9 @@ var HEADERS_REGISTROS = [
   // pestaña "Conectividad". "espacios afectados..." queda vacía a
   // propósito: sin fuente de datos todavía.
   'Matrícula', 'codigo identificacion ie', 'espacios afectados /salones/laboratorios/aula maxima. etc', 'Conectividad',
+  // Retorno a clases — lo escribe solo guardarRetorno_ (formulario aparte
+  // retorno.html). guardarSede_ únicamente conserva lo que la fila ya tenga.
+  'Retorno a clases', 'Observaciones retorno a clases',
 ];
 
 // Índices 1-based de columnas.
@@ -46,7 +49,19 @@ var COL = {
   PADRINO: 2, MUNICIPIO: 5, INSTITUCION: 6, SEDE: 10, DESCRIPCION: 12,
   EVIDENCIAS: 17, ESTADO: 18,
   MATRICULA: 19, DANE_SEDE: 20, ESPACIOS_AFECTADOS: 21, CONECTIVIDAD: 22,
+  RETORNO: 23, RETORNO_OBS: 24,
 };
+
+// Opciones válidas de "Retorno a clases" — mismas etiquetas (y orden) que
+// RETORNO_OPCIONES en js/config.js. Si cambian, actualizar en los dos lados.
+var RETORNO_OPCIONES = [
+  'Continúa el servicio',
+  'Regreso condicionado',
+  'Alternancia',
+  'Trabajo pedagógico desde casa',
+  'Regreso total a la presencialidad',
+  'Servicio temporalmente suspendido',
+];
 
 // Spreadsheet dedicado de resultados — ya creado a mano dentro de la carpeta
 // de evidencias en Drive (no lo crea el script, para no depender del permiso
@@ -81,6 +96,7 @@ function doGet(e) {
     if (accion === 'catalogos') return jsonResponse(getCatalogos_());
     if (accion === 'misRegistros') return jsonResponse(misRegistros_((e.parameter && e.parameter.padrino) || ''));
     if (accion === 'todosLosRegistros') return jsonResponse(todosLosRegistros_());
+    if (accion === 'sedesRetorno') return jsonResponse(sedesRetorno_());
     return errorResponse('Acción no reconocida: ' + accion);
   } catch (err) {
     return errorResponse(err.message);
@@ -98,6 +114,8 @@ function doPost(e) {
         return jsonResponse(sesionSubida_(datos));
       case 'guardarSede':
         return jsonResponse(guardarSede_(datos));
+      case 'guardarRetorno':
+        return jsonResponse(guardarRetorno_(datos));
       case 'resembrarCatalogos':
         return jsonResponse(resembrarCatalogos_(datos));
       case 'compartirEvidencias':
@@ -514,6 +532,9 @@ function guardarSede_(datos) {
     var documentos = evidencias.filter(function (ev) { return ev.tipo === 'documento'; });
     var estado = evidencias.length > 0 ? 'Completo' : 'Borrador';
     var derivados = camposDerivados_(municipio, institucion, sede, construirMapasDerivados_());
+    // El retorno a clases lo escribe guardarRetorno_, no este formulario: al
+    // reescribir la fila completa hay que conservar lo que ya tuviera.
+    var retornoPrevio = esPropio ? existente.valores.slice(COL.RETORNO - 1, COL.RETORNO_OBS) : ['', ''];
 
     var fila = [
       new Date(),
@@ -524,6 +545,7 @@ function guardarSede_(datos) {
       fotos.length, videos.length, documentos.length,
       urlSede, JSON.stringify(evidencias), estado,
       derivados.matricula, derivados.daneSede, '', derivados.conectividad,
+      retornoPrevio[0], retornoPrevio[1],
     ];
 
     if (esPropio) {
@@ -536,6 +558,68 @@ function guardarSede_(datos) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// ─── GET ?accion=sedesRetorno ───────────────────────────────
+// Lista liviana para el formulario retorno.html: solo las sedes que YA tienen
+// una fila en "registros" (nada de evidencias ni contactos) y el retorno que
+// ya tengan guardado, para poder mostrarlo y actualizarlo.
+
+function sedesRetorno_() {
+  var sheet = getSheet_('registros');
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var filas = sheet.getRange(2, 1, lastRow - 1, HEADERS_REGISTROS.length).getValues();
+  return filas
+    .filter(function (f) { return String(f[COL.SEDE - 1] || '').trim() !== ''; })
+    .map(function (f) {
+      return {
+        municipio: f[COL.MUNICIPIO - 1],
+        institucion: f[COL.INSTITUCION - 1],
+        sede: f[COL.SEDE - 1],
+        retorno: String(f[COL.RETORNO - 1] || ''),
+        retornoObs: String(f[COL.RETORNO_OBS - 1] || ''),
+      };
+    });
+}
+
+// ─── POST accion=guardarRetorno ─────────────────────────────
+// Escribe "Retorno a clases" (una de RETORNO_OPCIONES, obligatoria) y sus
+// observaciones (opcionales) en la fila de una sede que ya existe. No crea
+// filas: una sede sin reporte de daños no aparece en el formulario y aquí se
+// rechaza. Sin verificación de padrino a propósito — el formulario es de
+// uso interno y solo toca estas dos columnas.
+
+function guardarRetorno_(datos) {
+  var municipio = String(datos.municipio || '').trim();
+  var institucion = String(datos.institucion || '').trim();
+  var sede = String(datos.sede || '').trim();
+  var retorno = String(datos.retorno || '').trim();
+  var observaciones = String(datos.observaciones || '').trim().slice(0, 2000);
+
+  if (!municipio || !institucion || !sede) throw new Error('Faltan datos de municipio, institución o sede.');
+  if (RETORNO_OPCIONES.indexOf(retorno) === -1) throw new Error('Opción de retorno a clases no válida.');
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    var existente = buscarFilaSede_(municipio, institucion, sede);
+    if (!existente) {
+      throw new Error('La sede "' + sede + '" de ' + institucion + ' (' + municipio + ') todavía no tiene un reporte de daños.');
+    }
+    var sheet = getSheet_('registros');
+    sheet.getRange(existente.numeroFila, COL.RETORNO, 1, 2).setValues([[retorno, textoSeguroCelda_(observaciones)]]);
+    return { fila: existente.numeroFila, retorno: retorno };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Un texto que empieza con = + - @ lo interpreta Sheets como fórmula (y una
+// observación como "- aulas cerradas" mostraría #ERROR!). El apóstrofe inicial
+// lo fuerza a texto y Sheets no lo muestra.
+function textoSeguroCelda_(texto) {
+  return /^[=+\-@]/.test(texto) ? "'" + texto : texto;
 }
 
 // ─── POST accion=compartirEvidencias (uso único) ────────────
@@ -1166,6 +1250,7 @@ function todosLosRegistros_() {
       urlSede: f[15], evidencias: evidencias,
       estado: f[17] || 'Borrador',
       matricula: f[COL.MATRICULA - 1], daneSede: f[COL.DANE_SEDE - 1],
+      retorno: String(f[COL.RETORNO - 1] || ''), retornoObs: String(f[COL.RETORNO_OBS - 1] || ''),
     };
   });
 }
@@ -1180,7 +1265,29 @@ function getSheet_(nombre) {
   var ss = getResultsSpreadsheet_();
   var sheet = ss.getSheetByName(nombre);
   if (!sheet) sheet = ss.insertSheet(nombre);
+  if (nombre === 'registros') asegurarColumnasRegistros_(sheet);
   return sheet;
+}
+
+// "registros" ya existe en producción con menos columnas de las que hoy define
+// HEADERS_REGISTROS. Todas las lecturas piden HEADERS_REGISTROS.length columnas
+// y fallarían si la hoja no las tiene, así que la primera vez que se abre
+// "registros" en cada ejecución se agregan las que falten (y su encabezado, si
+// está vacío). Nunca toca datos ni encabezados ya escritos.
+var registrosVerificado_ = false;
+
+function asegurarColumnasRegistros_(sheet) {
+  if (registrosVerificado_) return;
+  registrosVerificado_ = true;
+  if (sheet.getLastRow() === 0) return; // hoja vacía: la llena guardarSede_/inicializar con el encabezado completo
+
+  var faltan = HEADERS_REGISTROS.length - sheet.getMaxColumns();
+  if (faltan > 0) sheet.insertColumnsAfter(sheet.getMaxColumns(), faltan);
+
+  var actual = sheet.getRange(1, 1, 1, HEADERS_REGISTROS.length).getValues()[0];
+  for (var i = 0; i < HEADERS_REGISTROS.length; i++) {
+    if (String(actual[i] || '').trim() === '') sheet.getRange(1, i + 1).setValue(HEADERS_REGISTROS[i]);
+  }
 }
 
 // ─── POST accion=resembrarCatalogos ─────────────────────────

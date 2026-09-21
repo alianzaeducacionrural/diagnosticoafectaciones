@@ -75,6 +75,11 @@
     <circle cx="17" cy="9" r="2.4"/>
     <path d="M15.3 13.1a4.3 4.3 0 0 1 5.2 4.2"/>
   </symbol>
+  <symbol id="icono-escuela" viewBox="0 0 24 24">
+    <path d="M3 9.5 12 5l9 4.5-9 4.5Z"/>
+    <path d="M7 12v4.2c0 1.1 2.2 2.3 5 2.3s5-1.2 5-2.3V12"/>
+    <path d="M21 9.5v5"/>
+  </symbol>
   <symbol id="icono-wifi" viewBox="0 0 24 24">
     <path d="M3.5 9.2a13 13 0 0 1 17 0"/>
     <path d="M6.5 12.9a8.5 8.5 0 0 1 11 0"/>
@@ -155,6 +160,9 @@
         <option value="si">Con conectividad</option>
         <option value="no">Sin conectividad</option>
         <option value="sin_dato">Sin dato</option>
+      </select>
+      <select id="filtroRetorno">
+        <option value="">Todo retorno a clases</option>
       </select>
       <button type="button" class="btn-texto" id="btnLimpiarFiltros">Limpiar filtros</button>
     </section>
@@ -247,6 +255,15 @@
       </div>
     </section>
 
+    <!-- Retorno a clases -->
+    <section class="tarjeta-panel panel-retorno grafico-retorno">
+      <div class="tarjeta-panel-cabeza">
+        <h2>Retorno a clases</h2>
+        <span class="tarjeta-panel-nota" id="notaRetorno"></span>
+      </div>
+      <div id="graficoRetorno" class="barras-horizontales"></div>
+    </section>
+
     <!-- Conectividad -->
     <section class="tarjeta-panel panel-conectividad">
       <div class="tarjeta-panel-cabeza">
@@ -274,6 +291,7 @@
               <th data-orden="padrino">Padrino <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="nivelOrden">Nivel <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="conectividadOrden">Conectividad <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
+              <th data-orden="retornoOrden">Retorno a clases <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
               <th data-orden="totalEvidencias">Evidencia <svg class="icono-svg icono-orden" aria-hidden="true"><use href="#icono-orden"/></svg></th>
             </tr>
           </thead>

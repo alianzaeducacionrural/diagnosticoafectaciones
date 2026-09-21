@@ -15,6 +15,12 @@ No hace falta completar todo de una vez: una sede se puede guardar solo con muni
 institución y sede (queda como "Borrador"), y el padrino la retoma después desde "Tus reportes
 guardados" para agregar nivel, descripción o evidencia — sin duplicar la fila.
 
+Aparte, [retorno.html](retorno.html) es un formulario pequeño de **Retorno a clases** (una de 6
+opciones + observaciones opcionales, con resumen): el padrino/rectoría elige Municipio →
+Institución → Sede entre las sedes que **ya tienen un reporte** (no crea filas nuevas) y guarda
+cómo está funcionando el servicio educativo. Se ve en el panel (gráfico, columna, filtro, detalle
+de sede y CSV). No está enlazado desde `index.html`; se comparte la URL directamente.
+
 ## Ejecutar el proyecto
 
 Sitio estático sin build ni dependencias. Abre [index.html](index.html) directo en el
@@ -33,7 +39,12 @@ Google Drive "Encuesta de daños por sismo"  (evidencias, árbol de carpetas)
 ```
 
 **Archivos**
-- [js/config.js](js/config.js) — `CONFIG.GAS_URL` y los parámetros de compresión/subida.
+- [js/config.js](js/config.js) — `CONFIG.GAS_URL`, los parámetros de compresión/subida y
+  `RETORNO_OPCIONES` (las 6 opciones de retorno a clases: `valor` que se guarda + `clave` para
+  los tokens CSS `--retorno-<clave>`). Las mismas 6 etiquetas viven en `RETORNO_OPCIONES` de
+  `gas/Code.gs` (el backend rechaza cualquier otra) — si cambian, actualizar en los dos lados.
+- [retorno.html](retorno.html) + [js/retorno.js](js/retorno.js) + [css/retorno.css](css/retorno.css)
+  — formulario de Retorno a clases (ver arriba). Comparte `styles.css` y `config.js`.
 - [js/upload.js](js/upload.js) — compresión de fotos (canvas) y subida de fotos/videos
   **directo del navegador a Drive** vía sesión de subida reanudable (el backend solo firma la
   sesión; nunca ve los bytes del archivo). Ver la nota de diseño más abajo.
@@ -57,6 +68,8 @@ del usuario — ver `Plataformas/Seguimiento a egresados/gas/Code.gs` y
 | POST | `iniciarSede` | crea/reutiliza la carpeta de la sede; bloquea solo si es de OTRO padrino |
 | POST | `sesionSubida` | firma una sesión de subida reanudable de Drive API v3 |
 | POST | `guardarSede` | upsert: si la fila es del mismo padrino la actualiza, si no la crea |
+| GET | `sedesRetorno` | lista liviana `{municipio, institucion, sede, retorno, retornoObs}` de las sedes que ya tienen fila — alimenta `retorno.html` |
+| POST | `guardarRetorno` | escribe solo `Retorno a clases` + observaciones en la fila existente de una sede (sin verificar padrino); rechaza opciones fuera de `RETORNO_OPCIONES` y sedes sin reporte |
 
 Acciones de mantenimiento de uso único/ocasional, protegidas con `ADMIN_KEY` (no es
 autenticación real, solo evita activarlas por accidente): `resembrarCatalogos`,
@@ -94,6 +107,15 @@ fuente de datos todavía. Hasta 2026-08-20 existía una pestaña "exportar" que 
 `registros` con estas mismas 4 columnas ya calculadas a mano; se unificaron (backfill vía
 `completarCamposDerivados` + `eliminarPestana`) para que `registros` sea la única fuente.
 
+**Retorno a clases** (`Retorno a clases`, `Observaciones retorno a clases` — columnas 23 y 24,
+`COL.RETORNO`/`COL.RETORNO_OBS`): NO son derivadas; solo las escribe `guardarRetorno_`.
+`guardarSede_` reescribe la fila completa, así que **conserva** lo que esas dos columnas ya
+tuvieran (si se agrega otra columna que no sea de `guardarSede_`, hay que preservarla igual).
+`getSheet_('registros')` agrega solo las columnas/encabezados que falten en la hoja
+(`asegurarColumnasRegistros_`) — la hoja de producción nació con 22 y todas las lecturas piden
+`HEADERS_REGISTROS.length`, así que sin esto fallarían tras desplegar. Las observaciones que
+empiezan con `= + - @` se guardan con apóstrofe inicial para que Sheets no las tome por fórmula.
+
 `RESULTS_SHEET_ID` está hardcodeado en `Code.gs` (el spreadsheet ya existe, no lo crea el
 script). El duplicado se detecta por clave natural `Municipio|Institución|Sede`
 (`buscarFilaSede_`) — es lo que permite reabrir y actualizar la misma fila en vez de bloquear al
@@ -128,6 +150,16 @@ detalle de sede se muestra como un banner grande con ícono (`.detalle-conectivi
 después de un sismo es un dato operativo (con quién se puede coordinar por internet). En la
 tabla y en el buscador de texto sigue siendo la placa chica (`placaConectividad`) y el código
 DANE (`r.daneSede`) es buscable junto con municipio/institución/sede/padrino.
+
+**Retorno a clases**: viene en cada fila de `todosLosRegistros` (`retorno`, `retornoObs`) y
+`prepararFila` lo convierte en `retornoClave` (`continua`…`suspendido` o `sin_registro`; cualquier
+texto que no sea exactamente una opción de `RETORNO_OPCIONES` cuenta como sin registrar). El
+gráfico "Retorno a clases" (`renderGraficoRetorno`) es una barra por opción + "Sin registrar"; a
+diferencia de los otros gráficos se calcula con `obtenerFiltrados(true)` (todos los filtros
+*menos* el de retorno), para que al hacer click en una barra —que fija el select `filtroRetorno`—
+las demás no caigan a 0. Las 6 categorías son nominales, no una escala, por eso usan sus propios
+tokens `--retorno-*` (en `styles.css`, ΔE mínimo 26.8) y no la rampa de nivel de afectación. En el
+detalle de sede es el primer bloque (`bloqueRetorno`), con las observaciones debajo.
 
 **Matrícula por nivel educativo** (Primaria/Posprimaria/Media): a diferencia de la Matrícula
 total (que sí queda guardada en `registros`), este desglose se lee en vivo desde

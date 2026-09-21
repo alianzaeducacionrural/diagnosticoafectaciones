@@ -7,6 +7,7 @@
 
 const NIVELES = ['Sin daños', 'Leve', 'Moderado', 'Grave', 'Inhabilitada'];
 const NIVEL_SIN_CLASIFICAR = '__sin_nivel__';
+const RETORNO_SIN_REGISTRO = 'sin_registro';
 
 let registros = [];
 let catalogos = null;
@@ -153,6 +154,21 @@ function construirMapaSimat(lista) {
   return mapa;
 }
 
+// ─── Retorno a clases ────────────────────────────────────────
+// Columna de "registros" que llena el formulario aparte retorno.html. Lo que
+// no sea exactamente una de RETORNO_OPCIONES (js/config.js) se trata como
+// "Sin registrar", igual que una sede que nunca lo llenó.
+
+function claveRetorno(valor) {
+  const opcion = RETORNO_OPCIONES.find((o) => o.valor === valor);
+  return opcion ? opcion.clave : RETORNO_SIN_REGISTRO;
+}
+
+function etiquetaRetorno(clave) {
+  const opcion = RETORNO_OPCIONES.find((o) => o.clave === clave);
+  return opcion ? opcion.valor : 'Sin registrar';
+}
+
 // ─── Carga ───────────────────────────────────────────────────
 
 async function cargarTodo() {
@@ -195,8 +211,12 @@ function prepararFila(r) {
   const clave = claveSedeJs(r.municipio, r.institucion, r.sede);
   const conectividad = mapaConectividad.has(clave) ? mapaConectividad.get(clave) : null; // null = sin dato
   const simat = mapaSimat.get(clave) || null;
+  const retornoClave = claveRetorno(r.retorno);
   return {
     ...r,
+    retornoClave,
+    // Orden de la lista de opciones; "Sin registrar" al final.
+    retornoOrden: retornoClave === RETORNO_SIN_REGISTRO ? RETORNO_OPCIONES.length : RETORNO_OPCIONES.findIndex((o) => o.clave === retornoClave),
     nivelClave: nivelValido ? r.nivel : NIVEL_SIN_CLASIFICAR,
     nivelOrden: nivelValido ? NIVELES.indexOf(r.nivel) : NIVELES.length,
     totalEvidencias: (r.evidencias || []).length,
@@ -233,16 +253,21 @@ function poblarFiltros() {
 
 // ─── Filtrado + orden ────────────────────────────────────────
 
-function obtenerFiltrados() {
+// `sinRetorno` omite el filtro de Retorno a clases: el gráfico de retorno lo
+// usa para seguir mostrando la distribución completa mientras una de sus
+// barras está seleccionada (si no, todas las demás caerían a 0).
+function obtenerFiltrados(sinRetorno) {
   const texto = document.getElementById('filtroTexto').value.trim().toLowerCase();
   const padrino = document.getElementById('filtroPadrino').value;
   const conectividad = document.getElementById('filtroConectividad').value;
+  const retorno = sinRetorno ? '' : document.getElementById('filtroRetorno').value;
 
   let lista = registros.filter((r) => {
     if (filtroMunicipioSel.size && !filtroMunicipioSel.has(r.municipio)) return false;
     if (filtroNivelSel.size && !filtroNivelSel.has(r.nivelClave)) return false;
     if (padrino && r.padrino !== padrino) return false;
     if (conectividad && claveConectividad(r.conectividad) !== conectividad) return false;
+    if (retorno && r.retornoClave !== retorno) return false;
     if (texto) {
       const haystack = `${r.municipio} ${r.institucion} ${r.sede} ${r.padrino} ${r.daneSede || ''}`.toLowerCase();
       if (!haystack.includes(texto)) return false;
@@ -274,6 +299,7 @@ function renderizarTodo() {
   renderKpis(filtrados);
   renderGraficoNivel(filtrados);
   renderGraficoMunicipio(filtrados);
+  renderGraficoRetorno(obtenerFiltrados(true));
   renderGraficoConectividad(filtrados);
   renderTabla(filtrados);
   requestAnimationFrame(igualarAlturaGraficos);
@@ -469,6 +495,64 @@ function renderGraficoMunicipio(filtrados) {
   cont.appendChild(leyenda);
 }
 
+// ─── Gráfico: retorno a clases ───────────────────────────────
+// Una barra por opción (más "Sin registrar"), sobre las sedes que pasan los
+// demás filtros. Click en una barra = filtrar la tabla por esa opción (segundo
+// click la quita) y desplegar qué municipios la componen.
+
+function renderGraficoRetorno(lista) {
+  const cont = document.getElementById('graficoRetorno');
+  const selFiltro = document.getElementById('filtroRetorno');
+  const claves = [...RETORNO_OPCIONES.map((o) => o.clave), RETORNO_SIN_REGISTRO];
+  const conteos = claves.map((c) => lista.filter((r) => r.retornoClave === c).length);
+  const max = Math.max(...conteos, 1);
+  const conRegistro = lista.length - conteos[conteos.length - 1];
+
+  document.getElementById('notaRetorno').textContent =
+    `${conRegistro} de ${lista.length} sede${lista.length === 1 ? '' : 's'} con retorno registrado · click en una barra para filtrar`;
+
+  cont.innerHTML = claves
+    .map((clave, i) => {
+      const etiqueta = etiquetaRetorno(clave);
+      const n = conteos[i];
+      const pct = Math.round((n / max) * 100);
+      const abierto = selFiltro.value === clave;
+
+      const porMun = {};
+      lista.forEach((r) => {
+        if (r.retornoClave !== clave) return;
+        porMun[r.municipio] = (porMun[r.municipio] || 0) + 1;
+      });
+      const detalle = Object.entries(porMun).sort((a, b) => b[1] - a[1]);
+
+      return `
+        <div class="fila-barra-detalle-wrap${abierto ? ' abierto' : ''}" data-clave="${clave}">
+          <div class="fila-barra fila-barra-click" data-role="fila-clicable">
+            <span class="etiqueta-barra" title="${escaparHtml(etiqueta)}">${escaparHtml(etiqueta)}</span>
+            <div class="pista-barra">
+              <div class="segmento" style="width:${pct}%; background:var(--retorno-${clave});"></div>
+            </div>
+            <span class="valor-barra">${n}</span>
+          </div>
+          <div class="detalle-expandido"${abierto ? '' : ' style="display:none;"'}>
+            ${
+              detalle.length
+                ? detalle.map(([mun, cant]) => `<div class="detalle-expandido-item"><span>${escaparHtml(mun)}</span><span>${cant}</span></div>`).join('')
+                : '<p class="detalle-expandido-vacio">Sin sedes con esta opción.</p>'
+            }
+          </div>
+        </div>`;
+    })
+    .join('');
+
+  cont.querySelectorAll('[data-clave]').forEach((fila) => {
+    fila.querySelector('[data-role="fila-clicable"]').addEventListener('click', () => {
+      selFiltro.value = selFiltro.value === fila.dataset.clave ? '' : fila.dataset.clave;
+      renderizarTodo();
+    });
+  });
+}
+
 // ─── Gráfico: conectividad por municipio (solo sedes reportadas) ─
 // A diferencia de los otros dos gráficos, esto NO viene de "registros"
 // (nivel/estado): se cruza cada sede reportada contra la pestaña
@@ -579,6 +663,28 @@ function placaConectividad(valor) {
   return `<span class="placa-conectividad" data-conectividad="${clave}">${escaparHtml(etiquetaConectividad(clave))}</span>`;
 }
 
+function placaRetorno(clave) {
+  return `<span class="placa-retorno" data-retorno="${clave}">${escaparHtml(etiquetaRetorno(clave))}</span>`;
+}
+
+// Bloque "Retorno a clases" del panel de detalle: la placa grande y, debajo,
+// las observaciones si las hubo. Para una sede sin registrar solo muestra la
+// placa gris, sin el texto de "sin observaciones".
+function bloqueRetorno(r) {
+  const registrado = r.retornoClave !== RETORNO_SIN_REGISTRO;
+  const observaciones = r.retornoObs
+    ? `<div class="detalle-descripcion">${escaparHtml(r.retornoObs)}</div>`
+    : registrado ? '<p class="detalle-sin-evidencia">Sin observaciones.</p>' : '';
+  return `<div class="detalle-bloque">
+    <h3>Retorno a clases</h3>
+    <div class="placa-retorno placa-retorno-banner" data-retorno="${r.retornoClave}">
+      ${iconoSvg('icono-escuela')}
+      <span>${escaparHtml(etiquetaRetorno(r.retornoClave))}</span>
+    </div>
+    ${observaciones}
+  </div>`;
+}
+
 // Banner grande (no la placa pequeña) — para el panel de detalle de sede,
 // donde la conectividad merece más peso visual que un simple chip.
 function bannerConectividad(valor) {
@@ -636,6 +742,7 @@ function renderTabla(filtrados) {
         <td>${escaparHtml(r.padrino)}</td>
         <td>${placaNivel(r.nivelClave)}</td>
         <td>${placaConectividad(r.conectividad)}</td>
+        <td class="col-retorno">${placaRetorno(r.retornoClave)}</td>
         <td><span class="contador-evidencia">${iconoSvg('icono-portapapeles')} ${r.totalEvidencias}</span></td>
       </tr>`
     )
@@ -695,6 +802,7 @@ function abrirDetalle(r) {
     <div class="detalle-sub">${escaparHtml(r.sede)} · ${escaparHtml(r.municipio)}${r.daneSede ? ` · DANE ${escaparHtml(r.daneSede)}` : ''}</div>
     <div class="detalle-placas">${placaNivel(r.nivelClave)}${placaEstado(r.estado)}</div>
     ${bannerConectividad(r.conectividad)}
+    ${bloqueRetorno(r)}
     ${r.matricula ? `<div class="detalle-matricula-stat">${iconoSvg('icono-personas')} <strong>${escaparHtml(r.matricula)}</strong> estudiantes matriculados</div>` : ''}
     ${desgloseMatriculaHtml(r)}
 
@@ -764,7 +872,7 @@ function descargarCsv() {
   const filas = window._filasFiltradasActuales || [];
   const encabezados = [
     'Fecha', 'Municipio', 'Institución', 'Sede', 'Código DANE', 'Matrícula', 'Padrino',
-    'Nivel', 'Estado', 'Conectividad', 'Descripción', '# Evidencias', 'Carpeta Drive',
+    'Nivel', 'Estado', 'Conectividad', 'Retorno a clases', 'Observaciones retorno', 'Descripción', '# Evidencias', 'Carpeta Drive',
   ];
   const csvEscapar = (v) => `"${String(v == null ? '' : v).replace(/"/g, '""')}"`;
 
@@ -774,6 +882,7 @@ function descargarCsv() {
       [
         formatearFecha(r.timestamp), r.municipio, r.institucion, r.sede, r.daneSede, r.matricula, r.padrino,
         r.nivelClave === NIVEL_SIN_CLASIFICAR ? '' : r.nivel, r.estado, etiquetaConectividad(claveConectividad(r.conectividad)),
+        r.retornoClave === RETORNO_SIN_REGISTRO ? '' : r.retorno, r.retornoObs,
         r.descripcion, r.totalEvidencias, r.urlSede,
       ]
         .map(csvEscapar)
@@ -801,7 +910,11 @@ document.addEventListener('DOMContentLoaded', () => {
     temporizadorResize = setTimeout(igualarAlturaGraficos, 150);
   });
 
-  ['filtroTexto', 'filtroPadrino', 'filtroConectividad'].forEach((id) => {
+  const selRetorno = document.getElementById('filtroRetorno');
+  [...RETORNO_OPCIONES.map((o) => ({ value: o.clave, label: o.valor })), { value: RETORNO_SIN_REGISTRO, label: 'Sin registrar' }]
+    .forEach((o) => selRetorno.add(new Option(o.label, o.value)));
+
+  ['filtroTexto', 'filtroPadrino', 'filtroConectividad', 'filtroRetorno'].forEach((id) => {
     const el = document.getElementById(id);
     el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', renderizarTodo);
   });
@@ -810,6 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filtroTexto').value = '';
     document.getElementById('filtroPadrino').value = '';
     document.getElementById('filtroConectividad').value = '';
+    document.getElementById('filtroRetorno').value = '';
     if (msMunicipio) msMunicipio.limpiar();
     if (msNivel) msNivel.limpiar();
     renderizarTodo();
