@@ -114,7 +114,10 @@
 /* ─── Filtros ───────────────────────────────────────────────── */
 
 .panel-filtros {
-  position: sticky; top: 73px; z-index: 15;
+  /* Se pega justo debajo del encabezado. La altura real del encabezado varía
+     (líneas de texto, ancho de pantalla), así que dashboard.js la mide y la
+     publica en --panel-header-alto; el número es solo el valor de respaldo. */
+  position: sticky; top: var(--panel-header-alto, 96px); z-index: 15;
   display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
   padding: 10px 0 14px;
   background: var(--ink-100);
@@ -538,7 +541,6 @@
 @media (max-width: 640px) {
   .panel-shell { --panel-margen: 12px; padding-bottom: 40px; }
   .panel-header { margin-bottom: 14px; flex-wrap: wrap; }
-  .panel-filtros { top: 116px; }
   .panel-kpis { grid-template-columns: 1fr 1fr; }
   .kpi-cobertura, .kpi-matricula-nivel { grid-column: 1 / -1; }
   .fila-barra { grid-template-columns: 92px 1fr 32px; }

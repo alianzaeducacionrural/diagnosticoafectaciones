@@ -39,7 +39,7 @@ var HEADERS_REGISTROS = [
   // pestaña "Conectividad". "espacios afectados..." queda vacía a
   // propósito: sin fuente de datos todavía.
   'Matrícula', 'codigo identificacion ie', 'espacios afectados /salones/laboratorios/aula maxima. etc', 'Conectividad',
-  // Retorno a clases — lo escribe solo guardarRetorno_ (formulario aparte
+  // Retorno a clases — lo escribe solo guardarRetornos_ (formulario aparte
   // retorno.html). guardarSede_ únicamente conserva lo que la fila ya tenga.
   'Retorno a clases', 'Observaciones retorno a clases',
 ];
@@ -114,8 +114,8 @@ function doPost(e) {
         return jsonResponse(sesionSubida_(datos));
       case 'guardarSede':
         return jsonResponse(guardarSede_(datos));
-      case 'guardarRetorno':
-        return jsonResponse(guardarRetorno_(datos));
+      case 'guardarRetornos':
+        return jsonResponse(guardarRetornos_(datos));
       case 'resembrarCatalogos':
         return jsonResponse(resembrarCatalogos_(datos));
       case 'compartirEvidencias':
@@ -532,7 +532,7 @@ function guardarSede_(datos) {
     var documentos = evidencias.filter(function (ev) { return ev.tipo === 'documento'; });
     var estado = evidencias.length > 0 ? 'Completo' : 'Borrador';
     var derivados = camposDerivados_(municipio, institucion, sede, construirMapasDerivados_());
-    // El retorno a clases lo escribe guardarRetorno_, no este formulario: al
+    // El retorno a clases lo escribe guardarRetornos_, no este formulario: al
     // reescribir la fila completa hay que conservar lo que ya tuviera.
     var retornoPrevio = esPropio ? existente.valores.slice(COL.RETORNO - 1, COL.RETORNO_OBS) : ['', ''];
 
@@ -583,33 +583,77 @@ function sedesRetorno_() {
     });
 }
 
-// ─── POST accion=guardarRetorno ─────────────────────────────
-// Escribe "Retorno a clases" (una de RETORNO_OPCIONES, obligatoria) y sus
-// observaciones (opcionales) en la fila de una sede que ya existe. No crea
-// filas: una sede sin reporte de daños no aparece en el formulario y aquí se
-// rechaza. Sin verificación de padrino a propósito — el formulario es de
-// uso interno y solo toca estas dos columnas.
+// ─── POST accion=guardarRetornos ────────────────────────────
+// Guarda "Retorno a clases" (una de RETORNO_OPCIONES, obligatoria) y sus
+// observaciones (opcionales) para VARIAS sedes en un solo envío:
+// datos.items = [{ municipio, institucion, sede, retorno, observaciones }].
+// Cada sede se resuelve por separado y el resultado dice qué pasó con cada
+// una (así un envío grande no se pierde entero por una sola sede mala):
+//   ok             → guardada
+//   ya_registrada  → la sede ya tenía retorno; NO se sobrescribe (devuelve el
+//                    que tenía). Cubre a quien tenga el formulario abierto con
+//                    datos viejos o dos personas enviando la misma sede.
+//   sin_reporte    → la sede no tiene fila en "registros" (no se crean filas)
+//   invalida       → faltan datos u opción de retorno fuera de la lista
+// Sin verificación de padrino a propósito — el formulario es de uso interno
+// y solo toca estas dos columnas.
 
-function guardarRetorno_(datos) {
-  var municipio = String(datos.municipio || '').trim();
-  var institucion = String(datos.institucion || '').trim();
-  var sede = String(datos.sede || '').trim();
-  var retorno = String(datos.retorno || '').trim();
-  var observaciones = String(datos.observaciones || '').trim().slice(0, 2000);
+var MAX_RETORNOS_POR_ENVIO = 300;
 
-  if (!municipio || !institucion || !sede) throw new Error('Faltan datos de municipio, institución o sede.');
-  if (RETORNO_OPCIONES.indexOf(retorno) === -1) throw new Error('Opción de retorno a clases no válida.');
+function guardarRetornos_(datos) {
+  var items = datos && Array.isArray(datos.items) ? datos.items : [];
+  if (items.length === 0) throw new Error('No hay sedes para guardar.');
+  if (items.length > MAX_RETORNOS_POR_ENVIO) throw new Error('Máximo ' + MAX_RETORNOS_POR_ENVIO + ' sedes por envío.');
 
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    var existente = buscarFilaSede_(municipio, institucion, sede);
-    if (!existente) {
-      throw new Error('La sede "' + sede + '" de ' + institucion + ' (' + municipio + ') todavía no tiene un reporte de daños.');
-    }
     var sheet = getSheet_('registros');
-    sheet.getRange(existente.numeroFila, COL.RETORNO, 1, 2).setValues([[retorno, textoSeguroCelda_(observaciones)]]);
-    return { fila: existente.numeroFila, retorno: retorno };
+    var lastRow = sheet.getLastRow();
+    var filas = lastRow >= 2 ? sheet.getRange(2, 1, lastRow - 1, HEADERS_REGISTROS.length).getValues() : [];
+
+    // Índice clave natural → posición en `filas` (la primera, igual que buscarFilaSede_).
+    var indice = {};
+    filas.forEach(function (f, i) {
+      var clave = claveSede_(f[COL.MUNICIPIO - 1], f[COL.INSTITUCION - 1], f[COL.SEDE - 1]);
+      if (!(clave in indice)) indice[clave] = i;
+    });
+
+    var resultados = items.map(function (it) {
+      it = it || {};
+      var municipio = String(it.municipio || '').trim();
+      var institucion = String(it.institucion || '').trim();
+      var sede = String(it.sede || '').trim();
+      var retorno = String(it.retorno || '').trim();
+      var observaciones = String(it.observaciones || '').trim().slice(0, 2000);
+      var res = { municipio: municipio, institucion: institucion, sede: sede };
+
+      if (!municipio || !institucion || !sede) {
+        res.estado = 'invalida'; res.mensaje = 'Faltan datos de municipio, institución o sede.';
+        return res;
+      }
+      if (RETORNO_OPCIONES.indexOf(retorno) === -1) {
+        res.estado = 'invalida'; res.mensaje = 'Opción de retorno a clases no válida.';
+        return res;
+      }
+      var i = indice[claveSede_(municipio, institucion, sede)];
+      if (i === undefined) {
+        res.estado = 'sin_reporte'; res.mensaje = 'Esta sede todavía no tiene un reporte de daños.';
+        return res;
+      }
+      var previo = String(filas[i][COL.RETORNO - 1] || '').trim();
+      if (previo !== '') {
+        res.estado = 'ya_registrada'; res.retorno = previo; res.mensaje = 'Esta sede ya tenía un retorno a clases registrado.';
+        return res;
+      }
+
+      sheet.getRange(i + 2, COL.RETORNO, 1, 2).setValues([[retorno, textoSeguroCelda_(observaciones)]]);
+      filas[i][COL.RETORNO - 1] = retorno; // si la misma sede viene repetida en el envío, la segunda cae en ya_registrada
+      res.estado = 'ok'; res.retorno = retorno;
+      return res;
+    });
+
+    return { resultados: resultados };
   } finally {
     lock.releaseLock();
   }

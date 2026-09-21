@@ -902,6 +902,16 @@ function descargarCsv() {
 // ─── Inicialización ──────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  // La fila de filtros se pega justo debajo del encabezado: se mide su altura
+  // real (cambia con el ancho de pantalla y con las líneas de texto) en vez de
+  // fijar un número que tarde o temprano deja el encabezado tapando los filtros.
+  const encabezado = document.querySelector('.panel-header');
+  const publicarAltoEncabezado = () =>
+    document.documentElement.style.setProperty('--panel-header-alto', `${encabezado.offsetHeight}px`);
+  publicarAltoEncabezado();
+  if (window.ResizeObserver) new ResizeObserver(publicarAltoEncabezado).observe(encabezado);
+  else window.addEventListener('resize', publicarAltoEncabezado);
+
   let temporizadorResize;
   window.addEventListener('resize', () => {
     clearTimeout(temporizadorResize);

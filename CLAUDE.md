@@ -16,10 +16,15 @@ institución y sede (queda como "Borrador"), y el padrino la retoma después des
 guardados" para agregar nivel, descripción o evidencia — sin duplicar la fila.
 
 Aparte, [retorno.html](retorno.html) es un formulario pequeño de **Retorno a clases** (una de 6
-opciones + observaciones opcionales, con resumen): el padrino/rectoría elige Municipio →
-Institución → Sede entre las sedes que **ya tienen un reporte** (no crea filas nuevas) y guarda
-cómo está funcionando el servicio educativo. Se ve en el panel (gráfico, columna, filtro, detalle
-de sede y CSV). No está enlazado desde `index.html`; se comparte la URL directamente.
+opciones + observaciones opcionales, con resumen). Se elige Municipio → Institución y se marcan
+**varias sedes** (casillas) a las que se les aplica el mismo retorno; "Agregar a la lista"
+acumula grupos (de otras instituciones/municipios, cada grupo con su propia opción) y un solo
+"Guardar" las envía todas juntas. Solo salen las sedes que **ya tienen un reporte** (no crea
+filas nuevas), y una sede **ya enviada o ya agregada a la lista no se puede seleccionar** (sale
+atenuada con "Ya enviada"/"En la lista"; municipios e instituciones sin sedes libres salen
+"completo" y bloqueados). No hay edición: un retorno ya guardado solo se corrige a mano en el
+Sheet. Se ve en el panel (gráfico, columna, filtro, detalle de sede y CSV). No está enlazado
+desde `index.html`; se comparte la URL directamente.
 
 ## Ejecutar el proyecto
 
@@ -69,7 +74,7 @@ del usuario — ver `Plataformas/Seguimiento a egresados/gas/Code.gs` y
 | POST | `sesionSubida` | firma una sesión de subida reanudable de Drive API v3 |
 | POST | `guardarSede` | upsert: si la fila es del mismo padrino la actualiza, si no la crea |
 | GET | `sedesRetorno` | lista liviana `{municipio, institucion, sede, retorno, retornoObs}` de las sedes que ya tienen fila — alimenta `retorno.html` |
-| POST | `guardarRetorno` | escribe solo `Retorno a clases` + observaciones en la fila existente de una sede (sin verificar padrino); rechaza opciones fuera de `RETORNO_OPCIONES` y sedes sin reporte |
+| POST | `guardarRetornos` | `{ items: [{municipio, institucion, sede, retorno, observaciones}] }` (máx. 300). Escribe solo `Retorno a clases` + observaciones en filas existentes, sin verificar padrino, y responde `{ resultados: [{…, estado}] }` sede por sede: `ok`, `ya_registrada` (**nunca sobrescribe**; devuelve el retorno que ya tenía), `sin_reporte` (no crea filas) o `invalida` |
 
 Acciones de mantenimiento de uso único/ocasional, protegidas con `ADMIN_KEY` (no es
 autenticación real, solo evita activarlas por accidente): `resembrarCatalogos`,
@@ -108,7 +113,9 @@ fuente de datos todavía. Hasta 2026-08-20 existía una pestaña "exportar" que 
 `completarCamposDerivados` + `eliminarPestana`) para que `registros` sea la única fuente.
 
 **Retorno a clases** (`Retorno a clases`, `Observaciones retorno a clases` — columnas 23 y 24,
-`COL.RETORNO`/`COL.RETORNO_OBS`): NO son derivadas; solo las escribe `guardarRetorno_`.
+`COL.RETORNO`/`COL.RETORNO_OBS`): NO son derivadas; solo las escribe `guardarRetornos_`, y solo
+en sedes que aún no tienen retorno (el bloqueo vive en el backend, no solo en el formulario, para
+cubrir páginas abiertas con datos viejos y dos personas enviando la misma sede).
 `guardarSede_` reescribe la fila completa, así que **conserva** lo que esas dos columnas ya
 tuvieran (si se agrega otra columna que no sea de `guardarSede_`, hay que preservarla igual).
 `getSheet_('registros')` agrega solo las columnas/encabezados que falten en la hoja
@@ -137,6 +144,12 @@ amarillo-oliva / ámbar / terracota / rojo, escala tipo ATC-20) — mismo compon
 sede y el modal de previsualización de evidencia son una copia deliberada de la lógica de
 `js/form.js`/`renderArchivosExistentes` — dos páginas estáticas sin build, no vale la pena
 extraer un módulo compartido para esto.
+
+**Encabezado y filtros pegajosos**: ambos son `position: sticky`. La fila de filtros se pega en
+`top: var(--panel-header-alto)`, que `dashboard.js` mide del encabezado real (y actualiza con
+`ResizeObserver`); un `top` fijo dejaba al encabezado tapando los filtros apenas su texto ocupaba
+otra línea o la pantalla se angostaba. El panel ocupa todo el ancho de la ventana (sin tope), con un
+margen lateral `--panel-margen` (12px móvil → 40px pantallas anchas) compartido con el encabezado.
 
 **Conectividad**: pestaña "Conectividad" del mismo spreadsheet de resultados (Municipio |
 Institución | Sede | DANE Sede | "Si"/"No"), llenada a mano por el usuario — no la crea
