@@ -558,7 +558,7 @@ function renderGraficoRetorno(lista) {
 // (nivel/estado): se cruza cada sede reportada contra la pestaña
 // "Conectividad" del Sheet por su clave natural (Municipio|Institución|
 // Sede) — ver prepararFila/claveSedeJs. Solo se muestran los municipios
-// que ya tienen algún reporte, nunca el catálogo completo de 771 sedes.
+// que ya tienen algún reporte, nunca el catálogo completo de sedes.
 
 const CONECTIVIDAD_CLAVES = ['si', 'no', 'sin_dato'];
 

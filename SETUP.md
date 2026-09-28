@@ -50,8 +50,8 @@ Abre esta URL en el navegador (debe devolver JSON, no HTML de error):
 https://script.google.com/macros/s/AKfycbyNsPIN3vvgG2oGL4Oa8SEmzMjKZEIAYJ042XyhBQVO6rJHRClB89IQGrZFw0I0YQyXrw/exec?accion=catalogos
 ```
 
-Debe traer `"ok":true` y, dentro de `data`: 20 `padrinos`, `geo` con 26 municipios (sin
-Manizales ni La Pintada), `asignacion` con 27 filas y `registradas` vacío (`[]`) la primera vez.
+Debe traer `"ok":true` y, dentro de `data`: 20 `padrinos`, `geo` con 27 municipios (con
+Manizales, sin La Pintada), `asignacion` con 27 filas y `registradas` vacío (`[]`) la primera vez.
 
 ## Guardado parcial (Borrador) y edición posterior
 
