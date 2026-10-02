@@ -451,6 +451,10 @@ function carpetaDentroDeRaiz_(carpetaId) {
 
 function leerSimat_() {
   var ss = SpreadsheetApp.openById(SIMAT_SHEET_ID);
+  return leerSimatCaldas_(ss).concat(leerSimatManizales_(ss));
+}
+
+function leerSimatCaldas_(ss) {
   var sheet = ss.getSheetByName('Caldas');
   if (!sheet) return [];
   var lastRow = sheet.getLastRow();
@@ -468,6 +472,38 @@ function leerSimat_() {
         posprimaria: f[17], // columna sin encabezado (suma de grados 6 a 9)
         media: f[18], // columna "MEDIA" (suma de grados 10 y 11)
         daneSede: String(f[21] || '').trim(), // columna "DANE SEDE"
+      };
+    });
+}
+
+// "Manizales" es otra pestaña del mismo spreadsheet (gid=334909659), con una
+// estructura distinta a "Caldas": sin columna de Municipio (todas sus filas
+// son de Manizales) ni de código DANE, y en vez de columnas resumen TOTAL/
+// PRIMARÍA/POSPRIMARIA/MEDIA trae una columna por grado (0 a 11) más "Total
+// general". Agregada el 2026-10-02 para completar la matrícula de Manizales,
+// que "Caldas" no trae (solo cubre los otros 26 municipios). Sin DANE sede:
+// esa pestaña no lo tiene, queda vacío igual que antes.
+function leerSimatManizales_(ss) {
+  var sheet = ss.getSheetByName('Manizales');
+  if (!sheet) return [];
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return [];
+  var filas = sheet.getRange(2, 1, lastRow - 1, 15).getValues();
+  var sumar = function (valores) {
+    return valores.reduce(function (acc, v) { return acc + (Number(v) || 0); }, 0);
+  };
+  return filas
+    .filter(function (f) { return String(f[1] || '').trim() !== ''; })
+    .map(function (f) {
+      return {
+        municipio: 'Manizales',
+        institucion: String(f[0] || '').trim(),
+        sede: String(f[1] || '').trim(),
+        matricula: f[14], // columna "Total general"
+        primaria: sumar(f.slice(2, 8)), // grados 0 a 5 (columnas C a H de datos, índices 2-7)
+        posprimaria: sumar(f.slice(8, 12)), // grados 6 a 9 (índices 8-11)
+        media: sumar(f.slice(12, 14)), // grados 10 y 11 (índices 12-13)
+        daneSede: '',
       };
     });
 }

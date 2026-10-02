@@ -121,9 +121,14 @@ se llenan solas en `guardarSede_` (`camposDerivados_`/`construirMapasDerivados_`
 Municipio|Institución|Sede contra dos fuentes externas: el spreadsheet `SIMAT_SHEET_ID`
 ("Simat 2025", pestaña "Caldas" — matrícula y código DANE de sede) y la pestaña "Conectividad"
 de este mismo spreadsheet (agregada a mano). `espacios afectados...` queda siempre vacía — sin
-fuente de datos todavía. **Manizales no está en `SIMAT_SHEET_ID`** (la pestaña "Caldas" solo trae
-26 municipios) **ni en la pestaña "Conectividad"**: sus sedes quedan con Matrícula, DANE y
-Conectividad vacías (y sin desglose por nivel en el panel) hasta que se agreguen a esas fuentes.
+fuente de datos todavía. **Manizales no está en la pestaña "Caldas"** de `SIMAT_SHEET_ID` (esa
+pestaña solo trae los otros 26 municipios); `leerSimat_` la completa fusionando otra pestaña del
+mismo spreadsheet, **"Manizales"** (gid 334909659, agregada el 2026-10-02): tiene otra estructura
+(sin columna de Municipio ni de código DANE; en vez de columnas resumen TOTAL/PRIMARÍA/
+POSPRIMARIA/MEDIA trae una columna por grado 0-11 + "Total general", que `leerSimatManizales_`
+suma por nivel) — ver `leerSimatCaldas_`/`leerSimatManizales_`. Sus 42 sedes calzan una a una
+(mismo nombre, normalizado) con las 42 de `MUN_IE_SEDE`. **Sigue sin código DANE** (esa pestaña no
+lo tiene) **ni en la pestaña "Conectividad"**: esas dos quedan vacías hasta que se agreguen a mano.
 Palestina/José María Carbonell/Buenavista (agregada al catálogo el 2026-10-02) sí está en
 `SIMAT_SHEET_ID` desde antes (DANE sede 217524000155, matrícula 22) — su fila tenía la matrícula
 puesta al revés entre las columnas resumen PRIMARÍA/MEDIA (contradecía el propio desglose por
