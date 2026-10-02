@@ -57,10 +57,12 @@ Google Drive "Encuesta de daños por sismo"  (evidencias, árbol de carpetas)
   repetidores de institución/sede (clonado de `<template>`), borrador en `localStorage`,
   validación, envío secuencial sede por sede con reintento de fallidas.
 - [gas/Code.gs](gas/Code.gs) — backend. Contiene embebidos como constantes JS el catálogo
-  `MUN_IE_SEDE` (813 sedes, 27 municipios de Caldas: incluye Manizales —15 instituciones rurales,
+  `MUN_IE_SEDE` (814 sedes, 27 municipios de Caldas: incluye Manizales —15 instituciones rurales,
   42 sedes, agregadas el 2026-09-28 desde la pestaña "Mun/IE/Sedes" del sheet maestro "Bases de
   datos Educación", ID en `Sistema de informes/Mesas de diálogo/src/Config.gs`—; excluye La
-  Pintada, que sí está en ese maestro con 2 sedes) y las
+  Pintada, que sí está en ese maestro con 2 sedes; más Buenavista de Palestina/José María
+  Carbonell, agregada el 2026-10-02 a pedido del usuario — ya existía en `SIMAT_SHEET_ID` pero no
+  en este catálogo) y las
   semillas `PADRINOS_SEED`/`ASIGNACION_SEED` usadas solo la primera vez que corre
   `inicializar()`. Si el catálogo de sedes cambia, se actualiza aquí a mano **y hay que subir la
   versión de la clave de caché `geo_vN` en `getCatalogos_`** (el catálogo se cachea 6 horas; sin
@@ -86,7 +88,9 @@ autenticación real, solo evita activarlas por accidente): `resembrarCatalogos` 
 `padrinos` Y `asignacion` completas desde las semillas — pisa cambios hechos a mano en el Sheet),
 `agregarPadrino` (`{nombre, correo?, telefono?}`: agrega UN padrino a la pestaña `padrinos` sin
 tocar nada más y sin duplicar; para uno solo, úsala en vez de `resembrarCatalogos`, y súmalo
-también a `PADRINOS_SEED`), `compartirEvidencias`, `migrarEstructuraCarpetas` (acepta `dryRun`), `limpiarHuerfanos` (acepta
+también a `PADRINOS_SEED`), `agregarConectividad` (`{municipio, institucion, sede, daneSede?,
+conectividad}`, `conectividad` debe ser "Si"/"No": agrega o actualiza UNA fila de la pestaña
+`Conectividad` por clave natural Municipio|Institución|Sede, sin duplicar), `compartirEvidencias`, `migrarEstructuraCarpetas` (acepta `dryRun`), `limpiarHuerfanos` (acepta
 `dryRun` — compara cada carpeta de sede contra la lista de evidencias del Sheet y manda a la
 papelera lo que no está referenciado), `repararEvidenciasFaltantes` (acepta `dryRun` — caso
 inverso: sede en "Borrador" con 0 evidencias pero con archivos reales en su carpeta de Drive
@@ -119,7 +123,14 @@ Municipio|Institución|Sede contra dos fuentes externas: el spreadsheet `SIMAT_S
 de este mismo spreadsheet (agregada a mano). `espacios afectados...` queda siempre vacía — sin
 fuente de datos todavía. **Manizales no está en `SIMAT_SHEET_ID`** (la pestaña "Caldas" solo trae
 26 municipios) **ni en la pestaña "Conectividad"**: sus sedes quedan con Matrícula, DANE y
-Conectividad vacías (y sin desglose por nivel en el panel) hasta que se agreguen a esas fuentes. Hasta 2026-08-20 existía una pestaña "exportar" que duplicaba
+Conectividad vacías (y sin desglose por nivel en el panel) hasta que se agreguen a esas fuentes.
+Palestina/José María Carbonell/Buenavista (agregada al catálogo el 2026-10-02) sí está en
+`SIMAT_SHEET_ID` desde antes (DANE sede 217524000155, matrícula 22) — su fila tenía la matrícula
+puesta al revés entre las columnas resumen PRIMARÍA/MEDIA (contradecía el propio desglose por
+grado de esa fila); el usuario la corrigió a mano en el Simat el 2026-10-02. Esa sede no tiene
+conectividad (agregado el 2026-10-02 vía `agregarConectividad`).
+
+Hasta 2026-08-20 existía una pestaña "exportar" que duplicaba
 `registros` con estas mismas 4 columnas ya calculadas a mano; se unificaron (backfill vía
 `completarCamposDerivados` + `eliminarPestana`) para que `registros` sea la única fuente.
 
@@ -147,7 +158,7 @@ intencional, evita el preflight CORS que Apps Script no maneja. **No cambiarlo a
 
 Página aparte, sin enlace desde `index.html` — para uso interno del programa, no de los
 padrinos. Trae **todas** las sedes de **todos** los padrinos (`accion=todosLosRegistros`) y el
-catálogo completo (`accion=catalogos`, para calcular cobertura sobre las 813 sedes). Sin build,
+catálogo completo (`accion=catalogos`, para calcular cobertura sobre las 814 sedes). Sin build,
 sin librería de gráficos: las barras son `<div>` con `width`/CSS, al estilo de la skill
 `dataviz`. El nivel de afectación se trata como una placa de inspección de edificios (verde /
 amarillo-oliva / ámbar / terracota / rojo, escala tipo ATC-20) — mismo componente
@@ -167,7 +178,7 @@ Institución | Sede | DANE Sede | "Si"/"No"), llenada a mano por el usuario — 
 `inicializar()`. Se cruza contra `registros` por la clave natural Municipio|Institución|Sede
 (`claveSedeJs`/`prepararFila` en `js/dashboard.js`), normalizada a minúsculas porque la pestaña
 usa mayúsculas. A propósito **solo cubre las sedes que ya tienen un reporte** — no el catálogo
-completo de 813 sedes — así que el KPI y el gráfico "Conectividad por municipio" se calculan
+completo de 814 sedes — así que el KPI y el gráfico "Conectividad por municipio" se calculan
 sobre `filtrados`, igual que los otros dos gráficos, y respetan los mismos filtros. En el
 detalle de sede se muestra como un banner grande con ícono (`.detalle-conectividad-banner`,
 `icono-wifi`) separado de las placas chicas de nivel/estado — a propósito más visible, porque
