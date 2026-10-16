@@ -527,16 +527,36 @@ function leerSimatManizales_(ss) {
     });
 }
 
+// 9 sedes del catálogo que ni siquiera limpiarNombreSede_ cruza con el Simat,
+// por errores de tipeo reales en esa pestaña (verificados a mano el
+// 2026-10-16, comparando sede por sede contra las filas crudas de su
+// institución): se resuelven por código DANE en vez de por nombre. Clave =
+// Municipio|Institución|Sede tal como está en el catálogo (normalizarClave_,
+// sin despojar prefijos) -> código DANE de la sede real en el Simat.
+var SOBRESCRITOS_SIMAT_ = {
+  'norcasia|la estrella|cardenales': '217662000425', // Simat: "ESCUELA RURAL CADENALES" (falta una r)
+  'pensilvania|camilo olimpo cardona|el higuerón': '217541000100', // Simat: "CONCENTRACIÓN ESCOLAR EL HIGUERÓN"
+  'pensilvania|john f. kennedy|central': '217541000673', // Simat: "COLEGIO JHON F. KENNEDY" (la sede principal, sin el sufijo "- SEDE PRINCIPAL")
+  'riosucio|florencia|mejíal': '217614001401', // Simat: "ESCUELA RURALAL MIXTA MEJIAL" (prefijo con typo)
+  'risaralda|gabriel garcía márquez|policarpa salavarrieta': '217616000160', // Simat: "ESCUELA. POLICARPA SALAVARRIETA" (punto pegado a ESCUELA)
+  'samaná|dulce nombre|finca nueva': '217662000549', // Simat: "ESCUELA RURAL MIXTA FINCA NUEVA" ("MIXTA" no se despoja)
+  'samaná|el bosque|guayaquil': '217662002291', // Simat: "ESCUELA RURAL MIXTA GUAYAQUIL"
+  'samaná|félix naranjo|juan pablo ii': '217662000492', // Simat: "ESCUELA MIXTA JUÁN PABLO II"
+  'villamaría|fortunato gaviria botero|bajo corozal': '217873000367', // Simat: "ESCUELA RURAL MIXTA BAJO COROZAL"
+};
+
 function construirMapasDerivados_() {
   var mapaSimat = {};
+  var mapaSimatPorDane = {};
   leerSimat_().forEach(function (r) {
     mapaSimat[claveSede_(r.municipio, r.institucion, r.sede)] = r;
+    if (r.daneSede) mapaSimatPorDane[r.daneSede] = r;
   });
   var mapaConectividad = {};
   leerConectividad_().forEach(function (r) {
     mapaConectividad[claveSede_(r.municipio, r.institucion, r.sede)] = r.conectividad;
   });
-  return { mapaSimat: mapaSimat, mapaConectividad: mapaConectividad };
+  return { mapaSimat: mapaSimat, mapaSimatPorDane: mapaSimatPorDane, mapaConectividad: mapaConectividad };
 }
 
 // Devuelve { matricula, daneSede, conectividad } para una sede puntual.
@@ -546,6 +566,10 @@ function construirMapasDerivados_() {
 function camposDerivados_(municipio, institucion, sede, mapas) {
   var clave = claveSede_(municipio, institucion, sede);
   var simat = mapas.mapaSimat[clave];
+  if (!simat) {
+    var daneConocido = SOBRESCRITOS_SIMAT_[normalizarClave_(municipio) + '|' + normalizarClave_(institucion) + '|' + normalizarClave_(sede)];
+    if (daneConocido) simat = mapas.mapaSimatPorDane[daneConocido];
+  }
   var conect = mapas.mapaConectividad[clave];
   return {
     matricula: simat ? simat.matricula : '',

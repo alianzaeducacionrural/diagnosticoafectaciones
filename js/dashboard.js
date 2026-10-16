@@ -165,10 +165,36 @@ function construirMapaConectividad(lista) {
 // sede. A diferencia de Matrícula/DANE/Conectividad (que quedan
 // guardados en la fila al momento del envío), este desglose se consulta
 // en vivo desde catalogos.simat — no se persiste en "registros".
+// 9 sedes del catálogo que ni siquiera limpiarNombreSede_ cruza con el Simat,
+// por errores de tipeo reales en esa pestaña (verificados a mano el
+// 2026-10-16). Mismo mapa que SOBRESCRITOS_SIMAT_ de gas/Code.gs — ver ahí el
+// detalle de cada typo. Clave = Municipio|Institución|Sede tal como está en el
+// catálogo (minúsculas/trim, sin despojar prefijos) -> código DANE real.
+const SOBRESCRITOS_SIMAT_ = {
+  'norcasia|la estrella|cardenales': '217662000425',
+  'pensilvania|camilo olimpo cardona|el higuerón': '217541000100',
+  'pensilvania|john f. kennedy|central': '217541000673',
+  'riosucio|florencia|mejíal': '217614001401',
+  'risaralda|gabriel garcía márquez|policarpa salavarrieta': '217616000160',
+  'samaná|dulce nombre|finca nueva': '217662000549',
+  'samaná|el bosque|guayaquil': '217662002291',
+  'samaná|félix naranjo|juan pablo ii': '217662000492',
+  'villamaría|fortunato gaviria botero|bajo corozal': '217873000367',
+};
+
+function claveCatalogo_(municipio, institucion, sede) {
+  return [municipio, institucion, sede].map((s) => String(s || '').trim().toLowerCase()).join('|');
+}
+
+let mapaSimatPorDane = new Map();
+
 function construirMapaSimat(lista) {
   const mapa = new Map();
+  mapaSimatPorDane = new Map();
   (lista || []).forEach((s) => {
-    mapa.set(claveSedeJs(s.municipio, s.institucion, s.sede), { primaria: s.primaria || 0, posprimaria: s.posprimaria || 0, media: s.media || 0 });
+    const entrada = { primaria: s.primaria || 0, posprimaria: s.posprimaria || 0, media: s.media || 0 };
+    mapa.set(claveSedeJs(s.municipio, s.institucion, s.sede), entrada);
+    if (s.daneSede) mapaSimatPorDane.set(String(s.daneSede).trim(), entrada);
   });
   return mapa;
 }
@@ -229,7 +255,11 @@ function prepararFila(r) {
   const nivelValido = NIVELES.indexOf(r.nivel) !== -1;
   const clave = claveSedeJs(r.municipio, r.institucion, r.sede);
   const conectividad = mapaConectividad.has(clave) ? mapaConectividad.get(clave) : null; // null = sin dato
-  const simat = mapaSimat.get(clave) || null;
+  let simat = mapaSimat.get(clave) || null;
+  if (!simat) {
+    const dane = SOBRESCRITOS_SIMAT_[claveCatalogo_(r.municipio, r.institucion, r.sede)];
+    if (dane) simat = mapaSimatPorDane.get(dane) || null;
+  }
   const retornoClave = claveRetorno(r.retorno);
   return {
     ...r,
