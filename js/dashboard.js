@@ -128,8 +128,27 @@ function escaparHtml(s) {
 // que usa el backend (normalizada a minúsculas, sin depender del acento
 // o de cómo esté capitalizado en cada lado).
 
+// El Simat usa nombres oficiales con prefijos variables ("ESCUELA RURAL X",
+// "CENTRO EDUCATIVO X", "SEDE X"...) y la sede principal aparece como
+// "... - SEDE PRINCIPAL" en vez de "Central" — por eso el cruce con
+// catalogos.simat (ver construirMapaSimat) fallaba para la mayoría de sedes
+// con reporte real (solo 0/112 en las pruebas antes de este fix, 103/112
+// después). Esta limpieza no afecta Conectividad/registros (ya usan nombres
+// cortos sin esos prefijos, así que es un no-op ahí) — probado sin
+// colisiones contra las 814 sedes del catálogo.
+const PREFIJOS_SIMAT_ = ['INSTITUCION', 'INSTITUCIÓN', 'EDUCATIVA', 'EDUCATIVO', 'CENTRO', 'ESCOLAR', 'DOCENTE', 'ESCUELA', 'RURAL', 'NUEVA', 'SEDE', 'COLEGIO'];
+
+function limpiarNombreSede_(s) {
+  const t = String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
+  if (/SEDE\s+PRINCIPAL\s*$/.test(t)) return 'CENTRAL';
+  const palabras = t.split(/\s+/).filter(Boolean);
+  let i = 0;
+  while (i < palabras.length - 1 && PREFIJOS_SIMAT_.includes(palabras[i])) i++;
+  return palabras.slice(i).join(' ');
+}
+
 function claveSedeJs(municipio, institucion, sede) {
-  return [municipio, institucion, sede].map((s) => String(s || '').trim().toLowerCase()).join('|');
+  return [municipio, institucion, sede].map(limpiarNombreSede_).join('|');
 }
 
 function construirMapaConectividad(lista) {

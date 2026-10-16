@@ -368,8 +368,27 @@ function buscarFilaSede_(municipio, institucion, sede) {
   return null;
 }
 
+// El Simat usa nombres oficiales con prefijos variables ("ESCUELA RURAL X",
+// "CENTRO EDUCATIVO X", "SEDE X"...) y la sede principal aparece como
+// "... - SEDE PRINCIPAL" en vez de "Central" — sin esta limpieza,
+// camposDerivados_ (Matrícula/DANE) no cruzaba para la mayoría de sedes con
+// reporte real. No afecta Conectividad/registros (ya usan nombres cortos
+// sin esos prefijos, es un no-op ahí) — probado sin colisiones contra las
+// 814 sedes del catálogo. Mismo criterio que limpiarNombreSede_ en
+// js/dashboard.js (duplicado ahí porque GAS y el navegador no comparten módulos).
+var PREFIJOS_SIMAT_ = ['INSTITUCION', 'INSTITUCIÓN', 'EDUCATIVA', 'EDUCATIVO', 'CENTRO', 'ESCOLAR', 'DOCENTE', 'ESCUELA', 'RURAL', 'NUEVA', 'SEDE', 'COLEGIO'];
+
+function limpiarNombreSede_(s) {
+  var t = String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim();
+  if (/SEDE\s+PRINCIPAL\s*$/.test(t)) return 'CENTRAL';
+  var palabras = t.split(/\s+/).filter(function (p) { return p; });
+  var i = 0;
+  while (i < palabras.length - 1 && PREFIJOS_SIMAT_.indexOf(palabras[i]) !== -1) i++;
+  return palabras.slice(i).join(' ');
+}
+
 function claveSede_(municipio, institucion, sede) {
-  return normalizarClave_(municipio) + '|' + normalizarClave_(institucion) + '|' + normalizarClave_(sede);
+  return limpiarNombreSede_(municipio) + '|' + limpiarNombreSede_(institucion) + '|' + limpiarNombreSede_(sede);
 }
 
 function normalizarClave_(s) {
